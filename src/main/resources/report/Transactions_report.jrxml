@@ -1,0 +1,360 @@
+<!-- Created with Jaspersoft Studio version 7.0.6.final using JasperReports Library version 7.0.6-5d2a603fdc6b3db8f842a83383e594f41891534d  -->
+<jasperReport name="Transactions_report" language="java" pageWidth="595" pageHeight="842" whenNoDataType="AllSectionsNoDetail" columnWidth="535" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="4eedbb89-b4f6-4469-9ab6-f642a1688cf7">
+	<property name="template.engine" value="tabular_template"/>
+	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="Bozz Laundry"/>
+	<style name="Title" forecolor="#FFFFFF" fontName="Times New Roman" fontSize="50.0" bold="false" pdfFontName="Times-Bold"/>
+	<style name="SubTitle" forecolor="#CCCCCC" fontName="Times New Roman" fontSize="18.0" bold="false" pdfFontName="Times-Roman"/>
+	<style name="Column header" forecolor="#666666" fontName="Times New Roman" fontSize="14.0" bold="true" pdfFontName="Times-Roman"/>
+	<style name="Detail" mode="Transparent" fontName="Times New Roman" pdfFontName="Times-Roman"/>
+	<style name="Row" mode="Transparent" fontName="Times New Roman" pdfFontName="Times-Roman">
+		<conditionalStyle mode="Opaque" backcolor="#EEEFF0">
+			<conditionExpression><![CDATA[$V{REPORT_COUNT}%2 == 0]]></conditionExpression>
+		</conditionalStyle>
+	</style>
+	<style name="Table">
+		<box>
+			<pen lineWidth="1.0" lineColor="#000000"/>
+			<topPen lineWidth="1.0" lineColor="#000000"/>
+			<leftPen lineWidth="1.0" lineColor="#000000"/>
+			<bottomPen lineWidth="1.0" lineColor="#000000"/>
+			<rightPen lineWidth="1.0" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="Table_TH" mode="Opaque" backcolor="#FFFFFF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+			<topPen lineWidth="0.5" lineColor="#000000"/>
+			<leftPen lineWidth="0.5" lineColor="#000000"/>
+			<bottomPen lineWidth="0.5" lineColor="#000000"/>
+			<rightPen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="Table_CH" mode="Opaque" backcolor="#CACED0">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+			<topPen lineWidth="0.5" lineColor="#000000"/>
+			<leftPen lineWidth="0.5" lineColor="#000000"/>
+			<bottomPen lineWidth="0.5" lineColor="#000000"/>
+			<rightPen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+	</style>
+	<style name="Table_TD" mode="Opaque" backcolor="#FFFFFF">
+		<box>
+			<pen lineWidth="0.5" lineColor="#000000"/>
+			<topPen lineWidth="0.5" lineColor="#000000"/>
+			<leftPen lineWidth="0.5" lineColor="#000000"/>
+			<bottomPen lineWidth="0.5" lineColor="#000000"/>
+			<rightPen lineWidth="0.5" lineColor="#000000"/>
+		</box>
+		<conditionalStyle backcolor="#D8D8D8">
+			<conditionExpression><![CDATA[$V{REPORT_COUNT}%2 == 0]]></conditionExpression>
+		</conditionalStyle>
+	</style>
+	<dataset name="tableDataset" uuid="b61c32d5-2e01-478f-bc14-d528c5a3e1d1">
+		<property name="com.jaspersoft.studio.data.defaultdataadapter" value="Bozz Laundry"/>
+		<query language="SQL"><![CDATA[SELECT
+    t.kode_invoice,
+    p.nama_pelanggan,
+    l.nama_layanan,
+    t.berat,
+    t.addons,
+    t.total_harga,
+    t.status,
+    t.tanggal_masuk
+FROM transaksi_laundry t
+JOIN master_pelanggan p
+ON t.id_pelanggan = p.id_pelanggan
+JOIN master_layanan l
+ON t.id_layanan = l.id_layanan]]></query>
+		<field name="kode_invoice" class="java.lang.String">
+			<property name="com.jaspersoft.studio.field.name" value="kode_invoice"/>
+			<property name="com.jaspersoft.studio.field.label" value="kode_invoice"/>
+			<property name="com.jaspersoft.studio.field.tree.path" value="transaksi_laundry"/>
+		</field>
+		<field name="nama_pelanggan" class="java.lang.String">
+			<property name="com.jaspersoft.studio.field.name" value="nama_pelanggan"/>
+			<property name="com.jaspersoft.studio.field.label" value="nama_pelanggan"/>
+			<property name="com.jaspersoft.studio.field.tree.path" value="master_pelanggan"/>
+		</field>
+		<field name="nama_layanan" class="java.lang.String">
+			<property name="com.jaspersoft.studio.field.name" value="nama_layanan"/>
+			<property name="com.jaspersoft.studio.field.label" value="nama_layanan"/>
+			<property name="com.jaspersoft.studio.field.tree.path" value="master_layanan"/>
+		</field>
+		<field name="berat" class="java.lang.Double">
+			<property name="com.jaspersoft.studio.field.name" value="berat"/>
+			<property name="com.jaspersoft.studio.field.label" value="berat"/>
+			<property name="com.jaspersoft.studio.field.tree.path" value="transaksi_laundry"/>
+		</field>
+		<field name="addons" class="java.lang.String">
+			<property name="com.jaspersoft.studio.field.name" value="addons"/>
+			<property name="com.jaspersoft.studio.field.label" value="addons"/>
+			<property name="com.jaspersoft.studio.field.tree.path" value="transaksi_laundry"/>
+		</field>
+		<field name="total_harga" class="java.lang.Double">
+			<property name="com.jaspersoft.studio.field.name" value="total_harga"/>
+			<property name="com.jaspersoft.studio.field.label" value="total_harga"/>
+			<property name="com.jaspersoft.studio.field.tree.path" value="transaksi_laundry"/>
+		</field>
+		<field name="status" class="java.lang.String">
+			<property name="com.jaspersoft.studio.field.name" value="status"/>
+			<property name="com.jaspersoft.studio.field.label" value="status"/>
+			<property name="com.jaspersoft.studio.field.tree.path" value="transaksi_laundry"/>
+		</field>
+		<field name="tanggal_masuk" class="java.sql.Date">
+			<property name="com.jaspersoft.studio.field.name" value="tanggal_masuk"/>
+			<property name="com.jaspersoft.studio.field.label" value="tanggal_masuk"/>
+			<property name="com.jaspersoft.studio.field.tree.path" value="transaksi_laundry"/>
+		</field>
+		<variable name="total_penghasilan" calculation="Sum" class="java.lang.Double">
+			<expression><![CDATA[$F{total_harga}]]></expression>
+		</variable>
+	</dataset>
+	<query language="sql"><![CDATA[]]></query>
+	<field name="kode_invoice" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="kode_invoice"/>
+		<property name="com.jaspersoft.studio.field.label" value="kode_invoice"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="transaksi_laundry"/>
+	</field>
+	<field name="nama_pelanggan" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nama_pelanggan"/>
+		<property name="com.jaspersoft.studio.field.label" value="nama_pelanggan"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="master_pelanggan"/>
+	</field>
+	<field name="nama_layanan" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="nama_layanan"/>
+		<property name="com.jaspersoft.studio.field.label" value="nama_layanan"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="master_layanan"/>
+	</field>
+	<field name="berat" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="berat"/>
+		<property name="com.jaspersoft.studio.field.label" value="berat"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="transaksi_laundry"/>
+	</field>
+	<field name="addons" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="addons"/>
+		<property name="com.jaspersoft.studio.field.label" value="addons"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="transaksi_laundry"/>
+	</field>
+	<field name="total_harga" class="java.lang.Double">
+		<property name="com.jaspersoft.studio.field.name" value="total_harga"/>
+		<property name="com.jaspersoft.studio.field.label" value="total_harga"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="transaksi_laundry"/>
+	</field>
+	<field name="status" class="java.lang.String">
+		<property name="com.jaspersoft.studio.field.name" value="status"/>
+		<property name="com.jaspersoft.studio.field.label" value="status"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="transaksi_laundry"/>
+	</field>
+	<field name="tanggal_masuk" class="java.sql.Date">
+		<property name="com.jaspersoft.studio.field.name" value="tanggal_masuk"/>
+		<property name="com.jaspersoft.studio.field.label" value="tanggal_masuk"/>
+		<property name="com.jaspersoft.studio.field.tree.path" value="transaksi_laundry"/>
+	</field>
+	<variable name="total_penghasilan" calculation="Sum" class="java.lang.Double">
+		<expression><![CDATA[$F{total_harga}]]></expression>
+	</variable>
+	<title height="256" splitType="Stretch">
+		<element kind="staticText" uuid="57aed2b1-4f4e-40a3-a6ad-54dae8dd4c5a" x="209" y="95" width="240" height="25" fontSize="16.0" bold="true">
+			<text><![CDATA[Laporan Transaksi]]></text>
+			<property name="local_mesure_unitheight" value="pixel"/>
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+		</element>
+		<element kind="staticText" uuid="33274f5d-5b7e-4be2-a2ff-65d452a618ed" x="0" y="115" width="120" height="15">
+			<text><![CDATA[]]></text>
+		</element>
+		<element kind="line" uuid="806ce5df-1219-4876-ae0c-ca7405b1f246" x="0" y="80" width="556" height="1">
+			<property name="local_mesure_unitheight" value="pixel"/>
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+		</element>
+		<element kind="staticText" uuid="0f86baff-6386-4f3f-b3fe-2388707babe8" x="415" y="10" width="50" height="20" hTextAlign="Right">
+			<text><![CDATA[Date:]]></text>
+			<box rightPadding="4"/>
+		</element>
+		<element kind="textField" uuid="bb10dbe1-0a4f-4722-9953-c163b63cf979" x="465" y="10" width="84" height="20" pattern="EEEEE dd MMMMM yyyy">
+			<expression><![CDATA[new java.util.Date()]]></expression>
+		</element>
+		<element kind="image" uuid="94883631-a913-43e2-b182-ab8d77d0181e" x="0" y="0" width="65" height="60" hImageAlign="Center">
+			<expression><![CDATA["invoice_logo.png"]]></expression>
+		</element>
+		<element kind="staticText" uuid="e622555d-198b-4ccd-a4a1-c59c53304058" x="95" y="0" width="210" height="25" fontSize="19.0" bold="true">
+			<text><![CDATA[Bozz Laundry]]></text>
+			<property name="local_mesure_unitheight" value="pixel"/>
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+		</element>
+		<element kind="staticText" uuid="b8cc42fd-b569-497d-834d-7e854040ad18" x="95" y="55" width="205" height="15">
+			<text><![CDATA[Phone number, web address, ecc.]]></text>
+		</element>
+		<element kind="staticText" uuid="c226e44d-3bb5-4145-b0b3-903bf1d79fde" x="95" y="25" width="205" height="15">
+			<text><![CDATA[Street address]]></text>
+		</element>
+		<element kind="staticText" uuid="b96f7183-44f8-43ad-ba60-43d8fbf50b6e" x="95" y="40" width="205" height="15">
+			<text><![CDATA[City, street, ZIP code]]></text>
+		</element>
+		<element kind="component" uuid="f10274ca-e83f-4449-a9b7-cb7676aabfe0" x="0" y="126" width="555" height="110">
+			<component kind="table">
+				<datasetRun uuid="b9ca8f5d-5354-4fa3-9a66-cbb4eb9ef567" subDataset="tableDataset">
+					<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				</datasetRun>
+				<column kind="single" uuid="bad8a50a-0b04-4ab1-9d93-038bb4795856" width="90">
+					<columnHeader height="30" rowSpan="1" style="Table_CH">
+						<element kind="staticText" uuid="2dbc038e-a444-4dd5-97b1-ab40b6248fa9" key="" x="0" y="0" width="90" height="30" forecolor="#000000" fontName="DejaVu Sans" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" style="Table_TD">
+							<text><![CDATA[INV CODE]]></text>
+							<box leftPadding="2" style="Table_TD"/>
+						</element>
+					</columnHeader>
+					<detailCell height="30" style="Table_TD">
+						<element kind="textField" uuid="f0262cdb-a090-48ec-a88e-b5a40ec86632" x="0" y="0" width="90" height="30" fontName="DejaVu Sans" fontSize="10.0" style="Detail">
+							<expression><![CDATA[$F{kode_invoice}]]></expression>
+							<box leftPadding="2" style="Detail"/>
+						</element>
+					</detailCell>
+					<property name="com.jaspersoft.studio.components.table.model.column.name" value="Column1"/>
+					<property name="com.jaspersoft.studio.layout" value="com.jaspersoft.studio.editor.layout.FreeLayout"/>
+				</column>
+				<column kind="single" uuid="bfafda0e-0cc3-4a9a-a219-57fb430eff83" width="69">
+					<columnHeader height="30" rowSpan="1" style="Table_CH">
+						<element kind="staticText" uuid="b30b3885-0ea9-4f15-8dc9-ae76cecded75" key="" x="0" y="0" width="69" height="30" forecolor="#000000" fontName="DejaVu Sans" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" style="Column header">
+							<text><![CDATA[NAMA]]></text>
+							<box leftPadding="2" style="Column header"/>
+						</element>
+					</columnHeader>
+					<detailCell height="30" style="Table_TD">
+						<element kind="textField" uuid="74224d60-c361-4529-96e2-a54adb9400d4" x="0" y="0" width="69" height="30" fontName="DejaVu Sans" fontSize="10.0" style="Detail">
+							<expression><![CDATA[$F{nama_pelanggan}]]></expression>
+							<box leftPadding="2" style="Detail"/>
+						</element>
+					</detailCell>
+					<property name="com.jaspersoft.studio.components.table.model.column.name" value="Column2"/>
+				</column>
+				<column kind="single" uuid="9f93fc7a-a665-4050-ac7e-24c29579faa9" width="69">
+					<columnHeader height="30" rowSpan="1" style="Table_CH">
+						<element kind="staticText" uuid="eb0d5b2f-0f41-4a1c-b8e4-3a0c4ec40ae8" key="" x="0" y="0" width="69" height="30" forecolor="#000000" fontName="DejaVu Sans" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" style="Column header">
+							<text><![CDATA[LAYANAN]]></text>
+							<box leftPadding="2" style="Column header"/>
+						</element>
+					</columnHeader>
+					<detailCell height="30" style="Table_TD">
+						<element kind="textField" uuid="fa20abec-7346-4204-8a64-9073b985388e" x="0" y="0" width="69" height="30" fontName="DejaVu Sans" fontSize="10.0" style="Detail">
+							<expression><![CDATA[$F{nama_layanan}]]></expression>
+							<box leftPadding="2" style="Detail"/>
+						</element>
+					</detailCell>
+					<property name="com.jaspersoft.studio.components.table.model.column.name" value="Column3"/>
+				</column>
+				<column kind="single" uuid="96d7b36c-632d-4172-98fd-c4f30b72a3cc" width="52">
+					<columnHeader height="30" rowSpan="1" style="Table_CH">
+						<element kind="staticText" uuid="472c6d8d-9d08-44ab-9be0-cb520de286bf" key="" x="0" y="0" width="52" height="30" forecolor="#000000" fontName="DejaVu Sans" fontSize="10.0" bold="true" vTextAlign="Middle" style="Column header">
+							<text><![CDATA[BERAT]]></text>
+							<box leftPadding="2" style="Column header"/>
+						</element>
+					</columnHeader>
+					<detailCell height="30" style="Table_TD">
+						<element kind="textField" uuid="1bdbcc62-7765-4e87-8027-a44dfd10ae74" x="0" y="0" width="52" height="30" fontName="DejaVu Sans" fontSize="10.0" style="Detail">
+							<expression><![CDATA[$F{berat}]]></expression>
+							<box leftPadding="2" style="Detail"/>
+						</element>
+					</detailCell>
+					<property name="com.jaspersoft.studio.components.table.model.column.name" value="Column4"/>
+				</column>
+				<column kind="single" uuid="bc0f3108-7c38-43a9-832f-54dceb365321" width="69">
+					<columnHeader height="30" rowSpan="1" style="Table_CH">
+						<element kind="staticText" uuid="53149014-7fff-4f76-98b6-4ace40fb4c7a" key="" x="0" y="0" width="69" height="30" forecolor="#000000" fontName="DejaVu Sans" fontSize="10.0" bold="true" vTextAlign="Middle" style="Column header">
+							<text><![CDATA[TAMBAHAN]]></text>
+							<box leftPadding="2" style="Column header"/>
+						</element>
+					</columnHeader>
+					<detailCell height="30" style="Table_TD">
+						<element kind="textField" uuid="5ee40ace-40c5-44e2-a313-7c97521d12cf" x="0" y="0" width="69" height="30" fontName="DejaVu Sans" fontSize="10.0" style="Detail">
+							<expression><![CDATA[$F{addons}]]></expression>
+							<box leftPadding="2" style="Detail"/>
+						</element>
+					</detailCell>
+					<property name="com.jaspersoft.studio.components.table.model.column.name" value="Column5"/>
+				</column>
+				<column kind="single" uuid="59b774cc-678c-4051-80f5-0e6042583b80" width="69">
+					<columnHeader height="30" rowSpan="1" style="Table_CH">
+						<element kind="staticText" uuid="f585a6be-bed8-442f-b5cc-32911ee767a5" key="" x="0" y="0" width="69" height="30" forecolor="#000000" fontName="DejaVu Sans" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" style="Column header">
+							<text><![CDATA[TOTAL]]></text>
+							<box leftPadding="2" style="Column header"/>
+						</element>
+					</columnHeader>
+					<detailCell height="30" style="Table_TD">
+						<element kind="textField" uuid="1e7cc1c7-3a52-4c12-b7b2-30a5816980ee" x="0" y="0" width="69" height="30" fontName="DejaVu Sans" fontSize="10.0" style="Detail">
+							<expression><![CDATA[new java.text.DecimalFormat(
+"'Rp' #,###"
+).format($F{total_harga})]]></expression>
+							<box leftPadding="2" style="Detail"/>
+						</element>
+					</detailCell>
+					<property name="com.jaspersoft.studio.components.table.model.column.name" value="Column6"/>
+				</column>
+				<column kind="single" uuid="18413eec-d109-4ba7-ac0c-9a7898550178" width="52">
+					<columnHeader height="30" rowSpan="1" style="Table_CH">
+						<element kind="staticText" uuid="1674c446-e30d-461d-a4ff-3096a4c588dc" key="" x="0" y="0" width="52" height="30" forecolor="#000000" fontName="DejaVu Sans" fontSize="10.0" bold="true" vTextAlign="Middle" style="Column header">
+							<text><![CDATA[STATUS]]></text>
+							<box leftPadding="2" style="Column header"/>
+						</element>
+					</columnHeader>
+					<columnFooter height="30" rowSpan="1" style="Table_CH">
+						<element kind="staticText" uuid="b351b934-d5fb-4ac6-99c3-42dbb0c1a7a1" x="0" y="0" width="52" height="30" fontSize="11.0" bold="true">
+							<text><![CDATA[Total]]></text>
+						</element>
+						<property name="com.jaspersoft.studio.layout" value="com.jaspersoft.studio.editor.layout.VerticalRowLayout"/>
+					</columnFooter>
+					<detailCell height="30" style="Table_TD">
+						<element kind="textField" uuid="ecc9ebb4-4fef-4cae-af23-f4cc0fcf12bd" x="0" y="0" width="52" height="30" fontName="DejaVu Sans" fontSize="10.0" style="Detail">
+							<expression><![CDATA[$F{status}]]></expression>
+							<box leftPadding="2" style="Detail"/>
+						</element>
+					</detailCell>
+					<property name="com.jaspersoft.studio.components.table.model.column.name" value="Column7"/>
+				</column>
+				<column kind="single" uuid="b3564133-736f-4cb8-84bb-b6c39dc236dd" width="85">
+					<columnHeader height="30" rowSpan="1" style="Table_CH">
+						<element kind="staticText" uuid="ffc3f91f-3450-4ec1-bbfe-11d026380cf5" key="" x="0" y="0" width="85" height="30" forecolor="#000000" fontName="DejaVu Sans" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" style="Column header">
+							<text><![CDATA[TGL.MASUK]]></text>
+							<box leftPadding="2" style="Column header"/>
+						</element>
+					</columnHeader>
+					<columnFooter height="30" rowSpan="1" style="Table_CH">
+						<element kind="textField" uuid="ed209877-b7c0-4ba9-b9bc-ec9d4acf66ab" x="0" y="0" width="85" height="30" fontSize="11.0" bold="true">
+							<expression><![CDATA[$V{total_penghasilan} == null
+? "Rp 0"
+: new java.text.DecimalFormat(
+    "'Rp' #,###"
+).format($V{total_penghasilan})]]></expression>
+						</element>
+					</columnFooter>
+					<detailCell height="30" style="Table_TD">
+						<element kind="textField" uuid="8d46f6b2-989a-4433-b78a-aa8b1860c253" x="0" y="0" width="85" height="30" fontName="DejaVu Sans" fontSize="10.0" style="Detail">
+							<expression><![CDATA[$F{tanggal_masuk}]]></expression>
+							<box leftPadding="2" style="Detail"/>
+						</element>
+					</detailCell>
+					<property name="com.jaspersoft.studio.components.table.model.column.name" value="Column8"/>
+				</column>
+			</component>
+			<property name="com.jaspersoft.studio.table.style.table_header" value="Table_TH"/>
+			<property name="com.jaspersoft.studio.table.style.column_header" value="Table_CH"/>
+			<property name="com.jaspersoft.studio.table.style.detail" value="Table_TD"/>
+		</element>
+	</title>
+	<summary height="293" splitType="Stretch">
+		<element kind="staticText" uuid="36aa233d-4305-48e6-974a-1bbf89bb3c8f" positionType="Float" mode="Opaque" x="0" y="263" width="556" height="30" backcolor="#E6E8E9" fontName="Serif" fontSize="9.0" italic="true" hTextAlign="Center" vTextAlign="Middle">
+			<text><![CDATA[THANKYOU FOR YOUR BUSINESS]]></text>
+		</element>
+		<element kind="textField" uuid="20f4941c-5e2c-4411-a1dc-7ed69b78406f" x="100" y="10" width="100" height="30">
+			<expression><![CDATA[$V{total_penghasilan} == null
+? "Rp 0"
+: new java.text.DecimalFormat(
+    "'Rp' #,###"
+).format($V{total_penghasilan})]]></expression>
+		</element>
+		<element kind="staticText" uuid="5461584c-7436-448d-bf14-05d2c2179e48" x="0" y="10" width="100" height="30">
+			<text><![CDATA[Total Penghasilan : ]]></text>
+		</element>
+		<property name="local_mesure_unitheight" value="pixel"/>
+	</summary>
+</jasperReport>
