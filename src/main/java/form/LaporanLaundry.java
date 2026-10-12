@@ -3,6 +3,7 @@ package form;
 import koneksi.Koneksi;
 import java.awt.Color;
 import java.awt.Font;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -218,12 +219,24 @@ private void exportPDF() {
         Connection conn =
                 Koneksi.getKoneksi();
 
-        String path =
-                getClass()
-                .getResource(
+        // Muat report sebagai stream dari classpath agar tetap bekerja
+        // ketika aplikasi dijalankan dari dalam shaded JAR
+        // (getResource(...).getPath() tidak valid di dalam JAR).
+        InputStream reportStream =
+                getClass().getResourceAsStream(
                         "/report/Transactions_report.jasper"
-                )
-                .getPath();
+                );
+
+        if (reportStream == null) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "File report Transactions_report.jasper tidak ditemukan "
+                    + "pada classpath."
+            );
+
+            return;
+        }
 
         HashMap<String, Object> parameter =
                 new HashMap<>();
@@ -255,7 +268,7 @@ private void exportPDF() {
 
         JasperPrint jp =
                 JasperFillManager.fillReport(
-                        path,
+                        reportStream,
                         parameter,
                         conn
                 );

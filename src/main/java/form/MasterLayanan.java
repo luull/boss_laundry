@@ -762,7 +762,7 @@ public class MasterLayanan extends JPanel {
 
             String sql =
                     "SELECT * FROM master_layanan "
-                    + "WHERE nama_layanan LIKE ?";
+                    + "WHERE nama_layanan ILIKE ?";
 
             PreparedStatement pst =
                     conn.prepareStatement(sql);

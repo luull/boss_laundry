@@ -2,6 +2,7 @@ form/LaporanLaundry.class
 form/MasterCabang$2.class
 form/MasterLayanan$3.class
 form/MenuDashboard$3.class
+koneksi/KoneksiException.class
 form/MasterLayanan$1.class
 form/MenuDashboard$8.class
 form/TransaksiLaundry$1.class
@@ -26,6 +27,7 @@ com/mycompany/bozzlaundry/BozzLaundry.class
 form/MasterUser$2.class
 form/MasterPelanggan$1.class
 form/MenuDashboard$1.class
+koneksi/Koneksi$DbConfig.class
 form/MenuDashboard$6.class
 form/MasterUser.class
 koneksi/Koneksi.class

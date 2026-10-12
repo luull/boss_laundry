@@ -1034,12 +1034,26 @@ Document document =
             );
 
             document.open();
-            Image logo = Image.getInstance("logo.png");
 
-logo.scaleToFit(70, 70);
-logo.setAlignment(Element.ALIGN_CENTER);
+            try {
 
-document.add(logo);
+                java.net.URL logoUrl =
+                        getClass().getResource("/image/logo.png");
+
+                Image logo =
+                        (logoUrl != null)
+                                ? Image.getInstance(logoUrl)
+                                : Image.getInstance("logo.png");
+
+                logo.scaleToFit(70, 70);
+                logo.setAlignment(Element.ALIGN_CENTER);
+
+                document.add(logo);
+
+            } catch (Exception logoEx) {
+
+                // Logo opsional: struk tetap dicetak walau logo tidak ditemukan.
+            }
 
 
 Paragraph title = new Paragraph(
@@ -1277,9 +1291,9 @@ document.add(thanks);
                     + "JOIN master_cabang c "
                     + "ON t.id_cabang = c.id_cabang "
                     + "WHERE "
-                    + "t.kode_invoice LIKE ? "
-                    + "OR p.nama_pelanggan LIKE ? "
-                    + "OR l.nama_layanan LIKE ?";
+                    + "t.kode_invoice ILIKE ? "
+                    + "OR p.nama_pelanggan ILIKE ? "
+                    + "OR l.nama_layanan ILIKE ?";
 
             PreparedStatement pst =
                     conn.prepareStatement(sql);

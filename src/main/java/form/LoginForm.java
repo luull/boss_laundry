@@ -1,6 +1,7 @@
 package form;
 
 import koneksi.Koneksi;
+import koneksi.KoneksiException;
 import koneksi.Session;
 
 import java.awt.Color;
@@ -10,6 +11,9 @@ import java.awt.Image;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
@@ -23,6 +27,9 @@ import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 
 public class LoginForm extends JFrame {
+
+    private static final Logger LOGGER =
+            Logger.getLogger(LoginForm.class.getName());
 
     JPanel mainPanel = new JPanel();
 
@@ -246,81 +253,111 @@ public class LoginForm extends JFrame {
     // ================= METHOD LOGIN =================
     private void login() {
 
+        String username = txtUsername.getText().trim();
+        String password = new String(txtPassword.getPassword());
+
+        if (username.isEmpty() || password.isEmpty()) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Username dan password wajib diisi.",
+                    "Login",
+                    JOptionPane.WARNING_MESSAGE
+            );
+
+            return;
+        }
+
+        // 1) Verifikasi koneksi database SEBELUM query login dijalankan.
+        //    Bila gagal, tampilkan pesan koneksi -- JANGAN menyatakan
+        //    "username/password salah" karena penyebabnya bukan kredensial.
+        Connection conn;
+
         try {
 
-            Connection conn =
-                    Koneksi.getKoneksi();
+            conn = Koneksi.getKoneksi();
 
-            String sql =
-                    "SELECT * FROM master_user "
-                    + "WHERE username=? "
-                    + "AND password=?";
+        } catch (KoneksiException ex) {
 
-            PreparedStatement pst =
-                    conn.prepareStatement(sql);
+            LOGGER.log(Level.SEVERE,
+                    "Login dibatalkan: koneksi database tidak tersedia.", ex);
 
-            pst.setString(
-                    1,
-                    txtUsername.getText()
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Tidak dapat terhubung ke database.\n"
+                    + "Login belum dapat diproses. Periksa koneksi internet "
+                    + "atau konfigurasi Supabase, lalu coba lagi.",
+                    "Koneksi Database Gagal",
+                    JOptionPane.ERROR_MESSAGE
             );
 
-            pst.setString(
-                    2,
-                    txtPassword.getText()
-            );
+            return;
+        }
 
-            ResultSet rs =
-                    pst.executeQuery();
+        // 2) Jalankan query login dengan PreparedStatement (try-with-resources
+        //    untuk statement & result set; koneksi tetap dipakai ulang).
+        String sql =
+                "SELECT id_user, username, role, id_cabang "
+                + "FROM master_user "
+                + "WHERE username = ? AND password = ?";
 
-            if (rs.next()) {
+        try (PreparedStatement pst = conn.prepareStatement(sql)) {
 
-                Session.idUser =
-                        rs.getInt("id_user");
+            pst.setString(1, username);
+            pst.setString(2, password);
 
-                Session.username =
-                        rs.getString("username");
+            try (ResultSet rs = pst.executeQuery()) {
 
-                Session.role =
-                        rs.getString("role");
+                if (rs.next()) {
 
-                Session.idCabang =
-                        rs.getInt("id_cabang");
+                    Session.idUser = rs.getInt("id_user");
+                    Session.username = rs.getString("username");
+                    Session.role = rs.getString("role");
+                    Session.idCabang = rs.getInt("id_cabang");
 
-                JOptionPane.showMessageDialog(
-                        null,
-                        "Login Berhasil"
-                );
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Login Berhasil"
+                    );
 
-                dispose();
+                    dispose();
 
-                if (Session.role.equals("kasir")) {
+                    if ("kasir".equals(Session.role)) {
 
-                    new KasirDashboard();
+                        new KasirDashboard();
+
+                    } else {
+
+                        new MenuDashboard();
+
+                    }
 
                 } else {
 
-                    new MenuDashboard();
+                    JOptionPane.showMessageDialog(
+                            this,
+                            "Username atau Password Salah",
+                            "Login Gagal",
+                            JOptionPane.WARNING_MESSAGE
+                    );
 
                 }
-
-            } else {
-
-                JOptionPane.showMessageDialog(
-                        null,
-                        "Username atau Password Salah"
-                );
-
             }
 
-        } catch (Exception e) {
+        } catch (SQLException ex) {
+
+            // Kegagalan di sini murni teknis (mis. koneksi terputus saat query).
+            LOGGER.log(Level.SEVERE,
+                    "Login gagal saat menjalankan query.", ex);
 
             JOptionPane.showMessageDialog(
-                    null,
-                    e
+                    this,
+                    "Terjadi kesalahan saat memproses login pada database.\n"
+                    + "Silakan coba lagi.",
+                    "Login Gagal",
+                    JOptionPane.ERROR_MESSAGE
             );
-
         }
-
     }
 
     // ================= MAIN =================

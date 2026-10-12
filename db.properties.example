@@ -1,0 +1,45 @@
+# =====================================================================
+# Contoh konfigurasi koneksi Supabase PostgreSQL untuk BOZZ Laundry.
+#
+# CARA PAKAI
+#   1. Salin file ini menjadi "db.properties" (tanpa ".example").
+#        cp db.properties.example db.properties
+#   2. Isi nilai di bawah dengan kredensial dari dashboard Supabase:
+#        Project Settings -> Database -> Connection string / Connection info
+#   3. JANGAN commit file db.properties ke Git (sudah masuk .gitignore).
+#
+# Lokasi file yang dibaca aplikasi (urutan prioritas):
+#   - path dari system property -Dbozz.db.config=/path/db.properties
+#   - ./db.properties (folder tempat aplikasi dijalankan)
+#   - ~/.bozzlaundry/db.properties
+#   - classpath /db.properties (paling akhir, opsional)
+#
+# Alternatif tanpa file: pakai environment variable
+#   SUPABASE_DB_HOST, SUPABASE_DB_PORT, SUPABASE_DB_NAME,
+#   SUPABASE_DB_USER, SUPABASE_DB_PASSWORD, SUPABASE_DB_SSLMODE
+#   (environment variable menang / override file ini bila keduanya diisi).
+# =====================================================================
+
+# -------- PILIHAN A: Session Pooler (disarankan untuk jaringan IPv4) --------
+# Dari Supabase: Connection string -> "Session pooler".
+# Host berbentuk: aws-0-<region>.pooler.supabase.com
+# Username berbentuk: postgres.<project-ref>
+db.host=aws-0-<region>.pooler.supabase.com
+db.port=5432
+db.name=postgres
+db.user=postgres.<project-ref>
+db.password=ISI_PASSWORD_DATABASE_ANDA
+db.sslmode=require
+
+# -------- PILIHAN B: Direct connection (butuh dukungan IPv6) --------
+# Host berbentuk: db.<project-ref>.supabase.co
+# db.host=db.<project-ref>.supabase.co
+# db.port=5432
+# db.name=postgres
+# db.user=postgres
+# db.password=ISI_PASSWORD_DATABASE_ANDA
+# db.sslmode=require
+
+# -------- PILIHAN C: URL JDBC penuh (override host/port/name di atas) --------
+# db.user & db.password tetap wajib diisi terpisah.
+# db.url=jdbc:postgresql://aws-0-<region>.pooler.supabase.com:5432/postgres?sslmode=require

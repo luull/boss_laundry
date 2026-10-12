@@ -478,7 +478,7 @@ private void cariData() {
 
         String sql =
                 "SELECT * FROM master_pelanggan "
-                + "WHERE nama_pelanggan LIKE ?";
+                + "WHERE nama_pelanggan ILIKE ?";
 
         PreparedStatement pst =
                 conn.prepareStatement(sql);

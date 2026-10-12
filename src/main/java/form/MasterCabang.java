@@ -371,7 +371,7 @@ txtSearch.setBounds(580, 80, 150, 35);
 
         String sql =
                 "SELECT * FROM master_cabang "
-                + "WHERE nama_cabang LIKE ?";
+                + "WHERE nama_cabang ILIKE ?";
 
         PreparedStatement pst =
                 conn.prepareStatement(sql);

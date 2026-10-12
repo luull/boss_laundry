@@ -14,16 +14,19 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.release>25</maven.compiler.release>
+        <maven.compiler.release>17</maven.compiler.release>
         <exec.mainClass>com.mycompany.bozzlaundry.BozzLaundry</exec.mainClass>
     </properties>
 
     <dependencies>
 
+        <!-- Driver JDBC PostgreSQL untuk koneksi ke Supabase.
+             Kompatibel dengan Java 8+ (termasuk target Java 17 proyek ini).
+             42.7.14 adalah rilis dengan perbaikan keamanan terbaru. -->
         <dependency>
-            <groupId>com.mysql</groupId>
-            <artifactId>mysql-connector-j</artifactId>
-            <version>8.3.0</version>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.7.14</version>
         </dependency>
         <dependency>
             <groupId>com.itextpdf</groupId>
@@ -65,9 +68,7 @@
 
             <configuration>
 
-                <source>17</source>
-
-                <target>17</target>
+                <release>17</release>
 
             </configuration>
 

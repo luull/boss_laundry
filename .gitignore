@@ -1,0 +1,16 @@
+# Kredensial database lokal - JANGAN pernah di-commit
+.env
+db.properties
+.bozzlaundry/
+
+# Build output
+target/
+
+# File struk / laporan hasil generate saat runtime
+struk_*.pdf
+
+# OS / editor
+.DS_Store
+*.iml
+.idea/
+nbproject/private/

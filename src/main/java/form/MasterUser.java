@@ -416,7 +416,7 @@ public class MasterUser extends JPanel {
                     + "FROM master_user u "
                     + "JOIN master_cabang c "
                     + "ON u.id_cabang = c.id_cabang "
-                    + "WHERE username LIKE ?";
+                    + "WHERE username ILIKE ?";
 
             PreparedStatement pst =
                     conn.prepareStatement(sql);

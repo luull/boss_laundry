@@ -1082,12 +1082,25 @@ private void cetakStruk() {
             document.open();
 
 // ================= LOGO =================
-Image logo = Image.getInstance("logo.png");
+try {
 
-logo.scaleToFit(70, 70);
-logo.setAlignment(Element.ALIGN_CENTER);
+    java.net.URL logoUrl =
+            getClass().getResource("/image/logo.png");
 
-document.add(logo);
+    Image logo =
+            (logoUrl != null)
+                    ? Image.getInstance(logoUrl)
+                    : Image.getInstance("logo.png");
+
+    logo.scaleToFit(70, 70);
+    logo.setAlignment(Element.ALIGN_CENTER);
+
+    document.add(logo);
+
+} catch (Exception logoEx) {
+
+    // Logo opsional: struk tetap dicetak walau logo tidak ditemukan.
+}
 
 // ================= TITLE =================
 Paragraph title = new Paragraph(
