@@ -3,13 +3,17 @@ package form;
 import koneksi.Koneksi;
 import java.awt.Color;
 import java.awt.Font;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.text.SimpleDateFormat;
+import java.util.HashMap;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
+import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -19,6 +23,11 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.table.DefaultTableModel;
 import koneksi.Session;
+import net.sf.jasperreports.engine.JasperCompileManager;
+import net.sf.jasperreports.engine.JasperExportManager;
+import net.sf.jasperreports.engine.JasperFillManager;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.JasperReport;
 
 public class MasterPelanggan extends JPanel {
 
@@ -29,6 +38,7 @@ public class MasterPelanggan extends JPanel {
 JTextField txtSearch = new JTextField();
     JButton btnEdit = new JButton("Edit");
     JButton btnHapus = new JButton("Hapus");
+    JButton btnExportPDF = new JButton("Export PDF");
 
     JTable table = new JTable();
     JScrollPane scroll = new JScrollPane(table);
@@ -47,11 +57,12 @@ JTextField txtSearch = new JTextField();
 
         btnTambah.setBounds(30, 80, 190, 35);
         btnEdit.setBounds(240, 80, 100, 35);
-        lblSearch.setBounds(520, 80, 60, 35);
-txtSearch.setBounds(580, 80, 150, 35);
         btnHapus.setBounds(360, 80, 100, 35);
+        btnExportPDF.setBounds(480, 80, 120, 35);
+        lblSearch.setBounds(620, 80, 60, 35);
+txtSearch.setBounds(680, 80, 150, 35);
 
-        scroll.setBounds(30, 140, 700, 320);
+        scroll.setBounds(30, 140, 800, 320);
 
         table.setRowHeight(25);
 
@@ -69,6 +80,7 @@ txtSearch.setBounds(580, 80, 150, 35);
         add(btnTambah);
         add(btnEdit);
         add(btnHapus);
+        add(btnExportPDF);
         add(lblSearch);
 add(txtSearch);
         
@@ -94,6 +106,9 @@ add(txtSearch);
         });
 
         btnHapus.addActionListener(e -> hapusData());
+        
+        btnExportPDF.addActionListener(e -> exportToPDF());
+        
         txtSearch.addKeyListener(new java.awt.event.KeyAdapter() {
 
     public void keyReleased(java.awt.event.KeyEvent evt) {
@@ -560,4 +575,99 @@ private void cariData() {
         }
     }
 }
+
+    // ================= EXPORT PDF =================
+    private void exportToPDF() {
+
+        try {
+
+            // ================= LOAD REPORT =================
+            InputStream reportStream = 
+                    getClass().getResourceAsStream(
+                            "/report/Pelanggan_report.jrxml"
+                    );
+
+            if (reportStream == null) {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "File report tidak ditemukan"
+                );
+
+                return;
+            }
+
+            // ================= COMPILE REPORT =================
+            JasperReport jasperReport =
+                    JasperCompileManager.compileReport(
+                            reportStream
+                    );
+
+            // ================= FILL REPORT =================
+            Connection conn = Koneksi.getKoneksi();
+
+            HashMap<String, Object> parameters =
+                    new HashMap<>();
+
+            JasperPrint jasperPrint =
+                    JasperFillManager.fillReport(
+                            jasperReport,
+                            parameters,
+                            conn
+                    );
+
+            // ================= CHOOSE SAVE LOCATION =================
+            JFileChooser fileChooser = new JFileChooser();
+
+            fileChooser.setDialogTitle("Simpan Laporan PDF");
+
+            SimpleDateFormat sdf =
+                    new SimpleDateFormat("yyyyMMdd_HHmmss");
+
+            String defaultFileName =
+                    "Laporan_Pelanggan_"
+                    + sdf.format(new java.util.Date())
+                    + ".pdf";
+
+            fileChooser.setSelectedFile(
+                    new java.io.File(defaultFileName)
+            );
+
+            int userSelection =
+                    fileChooser.showSaveDialog(this);
+
+            if (userSelection == JFileChooser.APPROVE_OPTION) {
+
+                String filePath =
+                        fileChooser.getSelectedFile()
+                                .getAbsolutePath();
+
+                // ================= ADD .pdf EXTENSION =================
+                if (!filePath.toLowerCase().endsWith(".pdf")) {
+
+                    filePath += ".pdf";
+                }
+
+                // ================= EXPORT TO PDF =================
+                JasperExportManager.exportReportToPdfFile(
+                        jasperPrint,
+                        filePath
+                );
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Laporan berhasil di-export ke:\n" + filePath
+                );
+            }
+
+        } catch (Exception e) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Error export PDF: " + e.getMessage()
+            );
+
+            e.printStackTrace();
+        }
+    }
 }

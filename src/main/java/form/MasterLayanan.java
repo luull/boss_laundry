@@ -3,13 +3,17 @@ package form;
 import koneksi.Koneksi;
 import java.awt.Color;
 import java.awt.Font;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.text.SimpleDateFormat;
+import java.util.HashMap;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
+import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -17,6 +21,11 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.table.DefaultTableModel;
+import net.sf.jasperreports.engine.JasperCompileManager;
+import net.sf.jasperreports.engine.JasperExportManager;
+import net.sf.jasperreports.engine.JasperFillManager;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.JasperReport;
 
 public class MasterLayanan extends JPanel {
 
@@ -28,6 +37,7 @@ public class MasterLayanan extends JPanel {
     JButton btnTambah = new JButton("+ Tambah Layanan");
     JButton btnEdit = new JButton("Edit");
     JButton btnHapus = new JButton("Hapus");
+    JButton btnExportPDF = new JButton("Export PDF");
 
     JTable table = new JTable();
     JScrollPane scroll = new JScrollPane(table);
@@ -52,6 +62,8 @@ public class MasterLayanan extends JPanel {
         btnEdit.setBounds(240, 80, 100, 40);
 
         btnHapus.setBounds(360, 80, 100, 40);
+        
+        btnExportPDF.setBounds(480, 80, 120, 40);
 
         btnTambah.setBackground(new Color(37,99,235));
         btnTambah.setForeground(Color.BLACK);
@@ -61,17 +73,21 @@ public class MasterLayanan extends JPanel {
 
         btnHapus.setBackground(new Color(239,68,68));
         btnHapus.setForeground(Color.BLACK);
+        
+        btnExportPDF.setBackground(new Color(22,163,74));
+        btnExportPDF.setForeground(Color.BLACK);
 
         btnTambah.setFocusPainted(false);
         btnEdit.setFocusPainted(false);
         btnHapus.setFocusPainted(false);
+        btnExportPDF.setFocusPainted(false);
 
         // ================= SEARCH =================
-        lblSearch.setBounds(540, 80, 70, 40);
+        lblSearch.setBounds(620, 80, 70, 40);
 
         lblSearch.setFont(new Font("Arial", Font.BOLD, 15));
 
-        txtSearch.setBounds(610, 80, 180, 40);
+        txtSearch.setBounds(690, 80, 180, 40);
 
         txtSearch.setFont(new Font("Arial", Font.PLAIN, 15));
 
@@ -101,6 +117,7 @@ public class MasterLayanan extends JPanel {
         add(btnTambah);
         add(btnEdit);
         add(btnHapus);
+        add(btnExportPDF);
 
         add(lblSearch);
         add(txtSearch);
@@ -130,6 +147,8 @@ public class MasterLayanan extends JPanel {
         });
 
         btnHapus.addActionListener(e -> hapusData());
+        
+        btnExportPDF.addActionListener(e -> exportToPDF());
 
         txtSearch.addKeyListener(
                 new java.awt.event.KeyAdapter() {
@@ -844,6 +863,101 @@ public class MasterLayanan extends JPanel {
                 );
 
             }
+        }
+    }
+    
+    // ================= EXPORT PDF =================
+    private void exportToPDF() {
+
+        try {
+
+            // ================= LOAD REPORT =================
+            InputStream reportStream = 
+                    getClass().getResourceAsStream(
+                            "/report/Layanan_report.jrxml"
+                    );
+
+            if (reportStream == null) {
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "File report tidak ditemukan"
+                );
+
+                return;
+            }
+
+            // ================= COMPILE REPORT =================
+            JasperReport jasperReport =
+                    JasperCompileManager.compileReport(
+                            reportStream
+                    );
+
+            // ================= FILL REPORT =================
+            Connection conn = Koneksi.getKoneksi();
+
+            HashMap<String, Object> parameters =
+                    new HashMap<>();
+
+            JasperPrint jasperPrint =
+                    JasperFillManager.fillReport(
+                            jasperReport,
+                            parameters,
+                            conn
+                    );
+
+            // ================= CHOOSE SAVE LOCATION =================
+            JFileChooser fileChooser = new JFileChooser();
+
+            fileChooser.setDialogTitle("Simpan Laporan PDF");
+
+            SimpleDateFormat sdf =
+                    new SimpleDateFormat("yyyyMMdd_HHmmss");
+
+            String defaultFileName =
+                    "Laporan_Layanan_"
+                    + sdf.format(new java.util.Date())
+                    + ".pdf";
+
+            fileChooser.setSelectedFile(
+                    new java.io.File(defaultFileName)
+            );
+
+            int userSelection =
+                    fileChooser.showSaveDialog(this);
+
+            if (userSelection == JFileChooser.APPROVE_OPTION) {
+
+                String filePath =
+                        fileChooser.getSelectedFile()
+                                .getAbsolutePath();
+
+                // ================= ADD .pdf EXTENSION =================
+                if (!filePath.toLowerCase().endsWith(".pdf")) {
+
+                    filePath += ".pdf";
+                }
+
+                // ================= EXPORT TO PDF =================
+                JasperExportManager.exportReportToPdfFile(
+                        jasperPrint,
+                        filePath
+                );
+
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Laporan berhasil di-export ke:\n" + filePath
+                );
+            }
+
+        } catch (Exception e) {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Error export PDF: " + e.getMessage()
+            );
+
+            e.printStackTrace();
         }
     }
 }
