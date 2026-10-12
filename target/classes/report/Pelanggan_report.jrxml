@@ -223,7 +223,7 @@ ORDER BY mp.id_pelanggan]]></query>
 	</title>
 	<summary height="293" splitType="Stretch">
 		<element kind="staticText" uuid="8b0161d6-d2df-4bab-bdcc-add567c1bbfa" positionType="FixRelativeToBottom" mode="Opaque" x="-1" y="0" width="556" height="30" backcolor="#E6E8E9" fontName="SansSerif" fontSize="9.0" italic="true" hTextAlign="Center" vTextAlign="Middle">
-			<text><![CDATA[BOZZ LAUNDRY]]></text>
+			<text><![CDATA[BOSS LAUNDRY]]></text>
 		</element>
 		<element kind="staticText" uuid="36aa233d-4305-48e6-974a-1bbf89bb3c8f" positionType="Float" mode="Opaque" x="0" y="263" width="556" height="30" backcolor="#E6E8E9" fontName="Serif" fontSize="9.0" italic="true" hTextAlign="Center" vTextAlign="Middle">
 			<text><![CDATA[THANKYOU FOR YOUR BUSINESS]]></text>

@@ -1,963 +1,456 @@
 package form;
 
 import koneksi.Koneksi;
-import java.awt.Color;
-import java.awt.Font;
-import java.io.InputStream;
+
+import ui.Async;
+import ui.CardPanel;
+import ui.DialogHelper;
+import ui.DocListener;
+import ui.FormDialog;
+import ui.Icons;
+import ui.TableDownloader;
+import ui.UIFactory;
+import ui.UITheme;
+
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Window;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.text.SimpleDateFormat;
-import java.util.HashMap;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
-import javax.swing.JDialog;
-import javax.swing.JFileChooser;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
-import net.sf.jasperreports.engine.JasperCompileManager;
-import net.sf.jasperreports.engine.JasperExportManager;
-import net.sf.jasperreports.engine.JasperFillManager;
-import net.sf.jasperreports.engine.JasperPrint;
-import net.sf.jasperreports.engine.JasperReport;
 
+/**
+ * Halaman Master Layanan: daftar layanan kiloan &amp; add-ons, cari, filter,
+ * CRUD, dan unduh PDF berkop surat. Operasi berat dijalankan di latar belakang
+ * agar UI tetap responsif.
+ */
 public class MasterLayanan extends JPanel {
 
-    JLabel title = new JLabel("MASTER LAYANAN");
+    private final DefaultTableModel model = new DefaultTableModel(
+            new Object[]{"ID", "Nama Layanan", "Kategori", "Harga Min",
+                    "Harga Max", "Estimasi", "Status"}, 0);
+    private final JTable table = new JTable(model);
+    private final JTextField txtSearch = UIFactory.searchField("Cari layanan...");
+    private final JComboBox<String> cbKategori = new JComboBox<>(
+            new String[]{"Semua Kategori", "kiloan", "addons"});
+    private final JButton btnEdit = UIFactory.warningButton("Edit");
+    private final JButton btnHapus = UIFactory.dangerButton("Hapus");
+    private final JButton btnExport = UIFactory.successButton("Export PDF");
+    private final JLabel statusLabel = UIFactory.muted("");
 
-    JLabel lblSearch = new JLabel("Search");
-    JTextField txtSearch = new JTextField();
-
-    JButton btnTambah = new JButton("+ Tambah Layanan");
-    JButton btnEdit = new JButton("Edit");
-    JButton btnHapus = new JButton("Hapus");
-    JButton btnExportPDF = new JButton("Export PDF");
-
-    JTable table = new JTable();
-    JScrollPane scroll = new JScrollPane(table);
-
-    DefaultTableModel model;
-
-    int selectedId = 0;
+    private int selectedId = 0;
 
     public MasterLayanan() {
+        setLayout(new BorderLayout(0, 16));
+        setOpaque(false);
+        add(buildTop(), BorderLayout.NORTH);
+        add(buildTable(), BorderLayout.CENTER);
+        wireEvents();
+        loadData();
+    }
 
-        setLayout(null);
-        setBackground(new Color(240, 248, 255));
+    private JPanel buildTop() {
+        JPanel top = new JPanel();
+        top.setOpaque(false);
+        top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
 
-        // ================= TITLE =================
-        title.setBounds(30, 20, 400, 40);
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
+        header.setAlignmentX(LEFT_ALIGNMENT);
+        JPanel titleBox = new JPanel();
+        titleBox.setOpaque(false);
+        titleBox.setLayout(new BoxLayout(titleBox, BoxLayout.Y_AXIS));
+        JLabel title = UIFactory.h2("Master Layanan");
+        title.setAlignmentX(LEFT_ALIGNMENT);
+        JLabel desc = UIFactory.muted("Kelola layanan kiloan dan add-ons.");
+        desc.setFont(UITheme.small());
+        desc.setAlignmentX(LEFT_ALIGNMENT);
+        titleBox.add(title);
+        titleBox.add(Box.createVerticalStrut(2));
+        titleBox.add(desc);
+        header.add(titleBox, BorderLayout.WEST);
 
-        title.setFont(new Font("Arial", Font.BOLD, 26));
+        JPanel hr = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        hr.setOpaque(false);
+        UIFactory.withIcon(btnExport, Icons.PDF);
+        JButton btnTambah = UIFactory.primaryButton("Tambah Layanan");
+        UIFactory.withIcon(btnTambah, Icons.PLUS);
+        btnTambah.addActionListener(e -> openForm(0));
+        hr.add(btnExport);
+        hr.add(btnTambah);
+        header.add(hr, BorderLayout.EAST);
+        top.add(header);
+        top.add(Box.createVerticalStrut(14));
 
-        // ================= BUTTON =================
-        btnTambah.setBounds(30, 80, 190, 40);
+        CardPanel toolbar = new CardPanel(new BorderLayout(12, 0));
+        toolbar.setAlignmentX(LEFT_ALIGNMENT);
+        toolbar.setBorder(BorderFactory.createEmptyBorder(12, 14, 12, 14));
+        toolbar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 64));
 
-        btnEdit.setBounds(240, 80, 100, 40);
+        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        left.setOpaque(false);
+        txtSearch.setPreferredSize(new Dimension(240, 38));
+        cbKategori.setPreferredSize(new Dimension(160, 38));
+        JButton btnReset = UIFactory.secondaryButton("Reset");
+        btnReset.addActionListener(e -> {
+            txtSearch.setText("");
+            cbKategori.setSelectedIndex(0);
+            loadData();
+        });
+        left.add(txtSearch);
+        left.add(cbKategori);
+        left.add(btnReset);
+        toolbar.add(left, BorderLayout.WEST);
 
-        btnHapus.setBounds(360, 80, 100, 40);
-        
-        btnExportPDF.setBounds(480, 80, 120, 40);
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        right.setOpaque(false);
+        btnEdit.setEnabled(false);
+        btnHapus.setEnabled(false);
+        UIFactory.withIcon(btnEdit, Icons.EDIT);
+        UIFactory.withIcon(btnHapus, Icons.TRASH);
+        right.add(btnEdit);
+        right.add(btnHapus);
+        toolbar.add(right, BorderLayout.EAST);
 
-        btnTambah.setBackground(new Color(37,99,235));
-        btnTambah.setForeground(Color.BLACK);
+        top.add(toolbar);
+        return top;
+    }
 
-        btnEdit.setBackground(new Color(245,158,11));
-        btnEdit.setForeground(Color.BLACK);
+    private JPanel buildTable() {
+        CardPanel card = new CardPanel(new BorderLayout());
+        card.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        UIFactory.styleTable(table);
+        table.getColumnModel().getColumn(0).setMaxWidth(60);
+        table.getColumnModel().getColumn(0)
+                .setCellRenderer(UIFactory.centerRenderer());
+        table.getColumnModel().getColumn(3)
+                .setCellRenderer(UIFactory.currencyRenderer());
+        table.getColumnModel().getColumn(4)
+                .setCellRenderer(UIFactory.currencyRenderer());
+        table.getColumnModel().getColumn(5)
+                .setCellRenderer(UIFactory.centerRenderer());
+        table.getColumnModel().getColumn(6).setMaxWidth(120);
+        table.getColumnModel().getColumn(6)
+                .setCellRenderer(UIFactory.statusRenderer());
+        card.add(UIFactory.tableScroll(table), BorderLayout.CENTER);
+        statusLabel.setBorder(BorderFactory.createEmptyBorder(8, 4, 0, 0));
+        card.add(statusLabel, BorderLayout.SOUTH);
+        return card;
+    }
 
-        btnHapus.setBackground(new Color(239,68,68));
-        btnHapus.setForeground(Color.BLACK);
-        
-        btnExportPDF.setBackground(new Color(22,163,74));
-        btnExportPDF.setForeground(Color.BLACK);
-
-        btnTambah.setFocusPainted(false);
-        btnEdit.setFocusPainted(false);
-        btnHapus.setFocusPainted(false);
-        btnExportPDF.setFocusPainted(false);
-
-        // ================= SEARCH =================
-        lblSearch.setBounds(620, 80, 70, 40);
-
-        lblSearch.setFont(new Font("Arial", Font.BOLD, 15));
-
-        txtSearch.setBounds(690, 80, 180, 40);
-
-        txtSearch.setFont(new Font("Arial", Font.PLAIN, 15));
-
-        // ================= TABLE =================
-        scroll.setBounds(30, 150, 980, 470);
-
-        table.setRowHeight(25);
-
-        table.setDefaultEditor(Object.class, null);
-
-        // ================= MODEL =================
-        model = new DefaultTableModel();
-
-        model.addColumn("ID");
-        model.addColumn("Nama Layanan");
-        model.addColumn("Kategori");
-        model.addColumn("Harga Min");
-        model.addColumn("Harga Max");
-        model.addColumn("Estimasi");
-        model.addColumn("Status");
-
-        table.setModel(model);
-
-        // ================= ADD =================
-        add(title);
-
-        add(btnTambah);
-        add(btnEdit);
-        add(btnHapus);
-        add(btnExportPDF);
-
-        add(lblSearch);
-        add(txtSearch);
-
-        add(scroll);
-
-        tampilData();
-
-        // ================= ACTION =================
-        btnTambah.addActionListener(e -> formLayanan("Tambah"));
-
+    private void wireEvents() {
+        table.getSelectionModel().addListSelectionListener(e -> {
+            int r = table.getSelectedRow();
+            boolean sel = r >= 0;
+            selectedId = sel ? Integer.parseInt(model.getValueAt(r, 0).toString()) : 0;
+            btnEdit.setEnabled(sel);
+            btnHapus.setEnabled(sel);
+        });
+        table.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (e.getClickCount() == 2 && selectedId != 0) {
+                    openForm(selectedId);
+                }
+            }
+        });
         btnEdit.addActionListener(e -> {
-
-            if (selectedId == 0) {
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Pilih data terlebih dahulu"
-                );
-
-            } else {
-
-                formLayanan("Edit");
-
+            if (selectedId != 0) {
+                openForm(selectedId);
             }
-
         });
+        btnHapus.addActionListener(e -> hapus());
+        btnExport.addActionListener(e -> TableDownloader.download(this, table,
+                "Laporan Master Layanan", "Laporan_Layanan"));
+        txtSearch.addActionListener(e -> loadData());
+        txtSearch.getDocument().addDocumentListener(new DocListener(this::loadData));
+        cbKategori.addActionListener(e -> loadData());
+    }
 
-        btnHapus.addActionListener(e -> hapusData());
-        
-        btnExportPDF.addActionListener(e -> exportToPDF());
+    // ================= DATA =================
+    private void loadData() {
+        statusLabel.setText("Memuat data...");
+        final String keyword = txtSearch.getText().trim();
+        final String kategori = cbKategori.getSelectedIndex() == 0
+                ? null : (String) cbKategori.getSelectedItem();
+        Async.run(() -> query(keyword, kategori),
+                rows -> {
+                    model.setRowCount(0);
+                    for (Object[] row : rows) {
+                        model.addRow(row);
+                    }
+                    selectedId = 0;
+                    btnEdit.setEnabled(false);
+                    btnHapus.setEnabled(false);
+                    statusLabel.setText(rows.isEmpty()
+                            ? "Tidak ada layanan."
+                            : rows.size() + " layanan ditemukan.");
+                },
+                err -> statusLabel.setText("Gagal memuat data layanan."));
+    }
 
-        txtSearch.addKeyListener(
-                new java.awt.event.KeyAdapter() {
-
-            public void keyReleased(
-                    java.awt.event.KeyEvent evt) {
-
-                cariData();
-
+    private List<Object[]> query(String keyword, String kategori)
+            throws Exception {
+        Connection conn = Koneksi.getKoneksi();
+        StringBuilder sql = new StringBuilder(
+                "SELECT id_layanan, nama_layanan, kategori, harga_min, "
+                + "harga_max, estimasi_hari, status FROM master_layanan "
+                + "WHERE 1=1");
+        List<Object> params = new ArrayList<>();
+        if (!keyword.isEmpty()) {
+            sql.append(" AND nama_layanan ILIKE ?");
+            params.add("%" + keyword + "%");
+        }
+        if (kategori != null) {
+            sql.append(" AND kategori = ?");
+            params.add(kategori);
+        }
+        sql.append(" ORDER BY id_layanan");
+        List<Object[]> rows = new ArrayList<>();
+        try (PreparedStatement pst = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                pst.setObject(i + 1, params.get(i));
             }
-
-        });
-
-        table.addMouseListener(
-                new java.awt.event.MouseAdapter() {
-
-            public void mouseClicked(
-                    java.awt.event.MouseEvent evt) {
-
-                int row = table.getSelectedRow();
-
-                selectedId = Integer.parseInt(
-                        table.getValueAt(row, 0)
-                                .toString()
-                );
-
+            try (ResultSet rs = pst.executeQuery()) {
+                while (rs.next()) {
+                    rows.add(new Object[]{
+                            rs.getInt("id_layanan"),
+                            rs.getString("nama_layanan"),
+                            rs.getString("kategori"),
+                            rs.getDouble("harga_min"),
+                            rs.getDouble("harga_max"),
+                            rs.getInt("estimasi_hari") + " Hari",
+                            rs.getString("status")});
+                }
             }
-
-        });
+        }
+        return rows;
     }
 
     // ================= FORM =================
-    private void formLayanan(String mode) {
+    private void openForm(int id) {
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        boolean edit = id != 0;
+        FormDialog dialog = new FormDialog(owner,
+                edit ? "Edit Layanan" : "Tambah Layanan",
+                edit ? "Perbarui detail layanan."
+                        : "Tambahkan layanan baru.");
 
-        JDialog dialog = new JDialog();
+        JTextField txtNama = UIFactory.textField();
+        JComboBox<String> cbFormKategori =
+                new JComboBox<>(new String[]{"kiloan", "addons"});
+        JTextField txtMin = UIFactory.textField();
+        JTextField txtMax = UIFactory.textField();
+        JTextField txtEstimasi = UIFactory.textField();
+        JComboBox<String> cbFormStatus =
+                new JComboBox<>(new String[]{"aktif", "nonaktif"});
 
-        dialog.setTitle(mode + " Layanan");
+        dialog.addRow("Nama Layanan", txtNama);
+        dialog.addRow("Kategori", cbFormKategori,
+                "Kiloan: harga tetap per kg. Add-ons: rentang harga.");
+        dialog.addRow("Harga Minimum", txtMin);
+        dialog.addRow("Harga Maksimum", txtMax);
+        dialog.addRow("Estimasi (hari)", txtEstimasi);
+        dialog.addRow("Status", cbFormStatus);
 
-        dialog.setSize(470, 520);
-
-        dialog.setLayout(null);
-
-        dialog.setLocationRelativeTo(null);
-
-        dialog.setModal(true);
-
-        dialog.getContentPane().setBackground(Color.WHITE);
-
-        // ================= LABEL =================
-        JLabel lblNama =
-                new JLabel("Nama Layanan");
-
-        JLabel lblKategori =
-                new JLabel("Kategori");
-
-        JLabel lblHargaMin =
-                new JLabel("Harga Min");
-
-        JLabel lblHargaMax =
-                new JLabel("Harga Max");
-
-        JLabel lblEstimasi =
-                new JLabel("Estimasi Hari");
-
-        JLabel lblStatus =
-                new JLabel("Status");
-
-        // ================= FIELD =================
-        JTextField txtNama =
-                new JTextField();
-
-        JTextField txtHargaMin =
-                new JTextField();
-
-        JTextField txtHargaMax =
-                new JTextField();
-
-        JTextField txtEstimasi =
-                new JTextField();
-
-        String[] kategoriList = {
-            "kiloan",
-            "addons"
-        };
-
-        JComboBox<String> cbKategori =
-                new JComboBox<>(kategoriList);
-
-        String[] statusList = {
-            "aktif",
-            "nonaktif"
-        };
-
-        JComboBox<String> cbStatus =
-                new JComboBox<>(statusList);
-
-        JButton btnSimpan =
-                new JButton("SIMPAN");
-
-        // ================= STYLE =================
-        JLabel[] labels = {
-            lblNama,
-            lblKategori,
-            lblHargaMin,
-            lblHargaMax,
-            lblEstimasi,
-            lblStatus
-        };
-
-        for (JLabel lbl : labels) {
-
-            lbl.setFont(
-                    new Font("Arial",
-                            Font.BOLD,
-                            14)
-            );
-
-        }
-
-        JTextField[] fields = {
-            txtNama,
-            txtHargaMin,
-            txtHargaMax,
-            txtEstimasi
-        };
-
-        for (JTextField txt : fields) {
-
-            txt.setFont(
-                    new Font("Arial",
-                            Font.PLAIN,
-                            15)
-            );
-
-            txt.setBorder(
-                    BorderFactory.createLineBorder(
-                            new Color(203,213,225),
-                            2
-                    )
-            );
-
-        }
-
-        cbKategori.setFont(
-                new Font("Arial",
-                        Font.PLAIN,
-                        15)
-        );
-
-        cbStatus.setFont(
-                new Font("Arial",
-                        Font.PLAIN,
-                        15)
-        );
-
-        btnSimpan.setBackground(
-                new Color(37,99,235)
-        );
-
-        btnSimpan.setForeground(Color.BLACK);
-
-        btnSimpan.setFocusPainted(false);
-
-        btnSimpan.setFont(
-                new Font("Arial",
-                        Font.BOLD,
-                        15)
-        );
-
-        // ================= POSITION =================
-        lblNama.setBounds(30, 30, 120, 30);
-        txtNama.setBounds(170, 30, 220, 35);
-
-        lblKategori.setBounds(30, 90, 120, 30);
-        cbKategori.setBounds(170, 90, 220, 35);
-
-        lblHargaMin.setBounds(30, 150, 120, 30);
-        txtHargaMin.setBounds(170, 150, 220, 35);
-
-        lblHargaMax.setBounds(30, 210, 120, 30);
-        txtHargaMax.setBounds(170, 210, 220, 35);
-
-        lblEstimasi.setBounds(30, 270, 120, 30);
-        txtEstimasi.setBounds(170, 270, 220, 35);
-
-        lblStatus.setBounds(30, 330, 120, 30);
-        cbStatus.setBounds(170, 330, 220, 35);
-
-        btnSimpan.setBounds(170, 410, 160, 40);
-
-        // ================= AUTO UX =================
-        cbKategori.addActionListener(e -> {
-
-            String kategori =
-                    cbKategori.getSelectedItem()
-                            .toString();
-
-            if (kategori.equals("kiloan")) {
-
-                txtHargaMax.setEnabled(false);
-
-                txtHargaMax.setText(
-                        txtHargaMin.getText()
-                );
-
+        Runnable applyKategori = () -> {
+            boolean kiloan = "kiloan".equals(cbFormKategori.getSelectedItem());
+            if (kiloan) {
+                txtMax.setText(txtMin.getText());
+                txtMax.setEnabled(false);
             } else {
-
-                txtHargaMax.setEnabled(true);
-
+                txtMax.setEnabled(true);
             }
-
-        });
-
-        txtHargaMin.addKeyListener(
-                new java.awt.event.KeyAdapter() {
-
-            public void keyReleased(
-                    java.awt.event.KeyEvent evt) {
-
-                if (cbKategori
-                        .getSelectedItem()
-                        .toString()
-                        .equals("kiloan")) {
-
-                    txtHargaMax.setText(
-                            txtHargaMin.getText()
-                    );
-                }
-
+        };
+        cbFormKategori.addActionListener(e -> applyKategori.run());
+        txtMin.getDocument().addDocumentListener(new DocListener(() -> {
+            if ("kiloan".equals(cbFormKategori.getSelectedItem())) {
+                txtMax.setText(txtMin.getText());
             }
+        }));
+        applyKategori.run();
 
-        });
-
-        // ================= EDIT MODE =================
-        if (mode.equals("Edit")) {
-
-            try {
-
-                Connection conn =
-                        Koneksi.getKoneksi();
-
-                String sql =
-                        "SELECT * FROM master_layanan "
-                        + "WHERE id_layanan=?";
-
-                PreparedStatement pst =
-                        conn.prepareStatement(sql);
-
-                pst.setInt(1, selectedId);
-
-                ResultSet rs =
-                        pst.executeQuery();
-
-                if (rs.next()) {
-
-                    txtNama.setText(
-                            rs.getString(
-                                    "nama_layanan"
-                            )
-                    );
-
-                    cbKategori.setSelectedItem(
-                            rs.getString(
-                                    "kategori"
-                            )
-                    );
-
-                    txtHargaMin.setText(
-                            rs.getString(
-                                    "harga_min"
-                            )
-                    );
-
-                    txtHargaMax.setText(
-                            rs.getString(
-                                    "harga_max"
-                            )
-                    );
-
-                    txtEstimasi.setText(
-                            rs.getString(
-                                    "estimasi_hari"
-                            )
-                    );
-
-                    cbStatus.setSelectedItem(
-                            rs.getString(
-                                    "status"
-                            )
-                    );
-
-                }
-
-            } catch (Exception e) {
-
-                JOptionPane.showMessageDialog(
-                        dialog,
-                        e
-                );
-
-            }
+        if (edit) {
+            loadForEdit(id, txtNama, cbFormKategori, txtMin, txtMax,
+                    txtEstimasi, cbFormStatus, applyKategori, dialog);
         }
 
-        // ================= SAVE =================
-        btnSimpan.addActionListener(e -> {
+        dialog.onSave(() -> {
+            dialog.clearError();
+            String nama = txtNama.getText().trim();
+            String min = txtMin.getText().trim();
+            String max = txtMax.getText().trim();
+            String est = txtEstimasi.getText().trim();
 
-            if (txtNama.getText()
-                    .trim()
-                    .isEmpty()) {
-
-                JOptionPane.showMessageDialog(
-                        dialog,
-                        "Nama layanan wajib diisi"
-                );
-
+            if (nama.isEmpty()) {
+                dialog.showError("Nama layanan wajib diisi.");
+                return;
+            }
+            if (!min.matches("\\d+")) {
+                dialog.showError("Harga minimum harus berupa angka.");
+                return;
+            }
+            if (!max.matches("\\d+")) {
+                dialog.showError("Harga maksimum harus berupa angka.");
+                return;
+            }
+            if (Integer.parseInt(max) < Integer.parseInt(min)) {
+                dialog.showError("Harga maksimum tidak boleh kurang dari minimum.");
+                return;
+            }
+            if (!est.matches("\\d+")) {
+                dialog.showError("Estimasi hari harus berupa angka.");
                 return;
             }
 
-            if (txtHargaMin.getText()
-                    .trim()
-                    .isEmpty()) {
-
-                JOptionPane.showMessageDialog(
-                        dialog,
-                        "Harga min wajib diisi"
-                );
-
-                return;
-            }
-
-            if (txtHargaMax.getText()
-                    .trim()
-                    .isEmpty()) {
-
-                JOptionPane.showMessageDialog(
-                        dialog,
-                        "Harga max wajib diisi"
-                );
-
-                return;
-            }
-
-            if (txtEstimasi.getText()
-                    .trim()
-                    .isEmpty()) {
-
-                JOptionPane.showMessageDialog(
-                        dialog,
-                        "Estimasi wajib diisi"
-                );
-
-                return;
-            }
-
-            if (!txtHargaMin.getText()
-                    .matches("[0-9]+")) {
-
-                JOptionPane.showMessageDialog(
-                        dialog,
-                        "Harga min harus angka"
-                );
-
-                return;
-            }
-
-            if (!txtHargaMax.getText()
-                    .matches("[0-9]+")) {
-
-                JOptionPane.showMessageDialog(
-                        dialog,
-                        "Harga max harus angka"
-                );
-
-                return;
-            }
-
-            if (!txtEstimasi.getText()
-                    .matches("[0-9]+")) {
-
-                JOptionPane.showMessageDialog(
-                        dialog,
-                        "Estimasi harus angka"
-                );
-
-                return;
-            }
-
-            try {
-
-                Connection conn =
-                        Koneksi.getKoneksi();
-
-                // ================= INSERT =================
-                if (mode.equals("Tambah")) {
-
-                    String sql =
-                            "INSERT INTO "
-                            + "master_layanan "
-                            + "(nama_layanan,"
-                            + "estimasi_hari,"
-                            + "status,"
-                            + "kategori,"
-                            + "harga_min,"
-                            + "harga_max)"
-                            + " VALUES(?,?,?,?,?,?)";
-
-                    PreparedStatement pst =
-                            conn.prepareStatement(sql);
-
-                    pst.setString(
-                            1,
-                            txtNama.getText()
-                    );
-
-                    pst.setString(
-                            2,
-                            txtEstimasi.getText()
-                    );
-
-                    pst.setString(
-                            3,
-                            cbStatus
-                                    .getSelectedItem()
-                                    .toString()
-                    );
-
-                    pst.setString(
-                            4,
-                            cbKategori
-                                    .getSelectedItem()
-                                    .toString()
-                    );
-
-                    pst.setString(
-                            5,
-                            txtHargaMin.getText()
-                    );
-
-                    pst.setString(
-                            6,
-                            txtHargaMax.getText()
-                    );
-
-                    pst.executeUpdate();
-
-                    JOptionPane.showMessageDialog(
-                            dialog,
-                            "Data berhasil disimpan"
-                    );
-
-                } else {
-
-                    // ================= UPDATE =================
-                    String sql =
-                            "UPDATE master_layanan SET "
-                            + "nama_layanan=?, "
-                            + "estimasi_hari=?, "
-                            + "status=?, "
-                            + "kategori=?, "
-                            + "harga_min=?, "
-                            + "harga_max=? "
-                            + "WHERE id_layanan=?";
-
-                    PreparedStatement pst =
-                            conn.prepareStatement(sql);
-
-                    pst.setString(
-                            1,
-                            txtNama.getText()
-                    );
-
-                    pst.setString(
-                            2,
-                            txtEstimasi.getText()
-                    );
-
-                    pst.setString(
-                            3,
-                            cbStatus
-                                    .getSelectedItem()
-                                    .toString()
-                    );
-
-                    pst.setString(
-                            4,
-                            cbKategori
-                                    .getSelectedItem()
-                                    .toString()
-                    );
-
-                    pst.setString(
-                            5,
-                            txtHargaMin.getText()
-                    );
-
-                    pst.setString(
-                            6,
-                            txtHargaMax.getText()
-                    );
-
-                    pst.setInt(
-                            7,
-                            selectedId
-                    );
-
-                    pst.executeUpdate();
-
-                    JOptionPane.showMessageDialog(
-                            dialog,
-                            "Data berhasil diupdate"
-                    );
-
-                }
-
-                tampilData();
-
+            String kategori = (String) cbFormKategori.getSelectedItem();
+            String st = (String) cbFormStatus.getSelectedItem();
+            dialog.setSaving(true);
+            Async.run(() -> {
+                save(id, nama, est, st, kategori, min, max);
+                return null;
+            }, ok -> {
+                dialog.setSaving(false);
                 dialog.dispose();
-
-            } catch (Exception ex) {
-
-                JOptionPane.showMessageDialog(
-                        dialog,
-                        ex
-                );
-
-            }
-
+                DialogHelper.success(this, edit
+                        ? "Layanan berhasil diperbarui."
+                        : "Layanan baru berhasil ditambahkan.");
+                loadData();
+            }, err -> {
+                dialog.setSaving(false);
+                dialog.showError("Gagal menyimpan layanan. Coba lagi.");
+            });
         });
 
-        // ================= ADD =================
-        dialog.add(lblNama);
-        dialog.add(txtNama);
-
-        dialog.add(lblKategori);
-        dialog.add(cbKategori);
-
-        dialog.add(lblHargaMin);
-        dialog.add(txtHargaMin);
-
-        dialog.add(lblHargaMax);
-        dialog.add(txtHargaMax);
-
-        dialog.add(lblEstimasi);
-        dialog.add(txtEstimasi);
-
-        dialog.add(lblStatus);
-        dialog.add(cbStatus);
-
-        dialog.add(btnSimpan);
-
-        dialog.setVisible(true);
+        dialog.display();
     }
 
-    // ================= TAMPIL DATA =================
-    private void tampilData() {
-
-        model.setRowCount(0);
-
-        try {
-
-            Connection conn =
-                    Koneksi.getKoneksi();
-
-            String sql =
-                    "SELECT * FROM master_layanan";
-
-            PreparedStatement pst =
-                    conn.prepareStatement(sql);
-
-            ResultSet rs =
-                    pst.executeQuery();
-
-            while (rs.next()) {
-
-                model.addRow(new Object[]{
-
-                    rs.getInt("id_layanan"),
-
-                    rs.getString("nama_layanan"),
-
-                    rs.getString("kategori"),
-
-                    rs.getString("harga_min"),
-
-                    rs.getString("harga_max"),
-
-                    rs.getString("estimasi_hari")
-                    + " Hari",
-
-                    rs.getString("status")
-
-                });
+    private void loadForEdit(int id, JTextField nama, JComboBox<String> kategori,
+            JTextField min, JTextField max, JTextField est,
+            JComboBox<String> status, Runnable applyKategori, FormDialog dialog) {
+        Async.run(() -> {
+            Connection conn = Koneksi.getKoneksi();
+            try (PreparedStatement pst = conn.prepareStatement(
+                    "SELECT * FROM master_layanan WHERE id_layanan=?")) {
+                pst.setInt(1, id);
+                try (ResultSet rs = pst.executeQuery()) {
+                    if (rs.next()) {
+                        return new String[]{
+                                rs.getString("nama_layanan"),
+                                rs.getString("kategori"),
+                                String.valueOf((int) rs.getDouble("harga_min")),
+                                String.valueOf((int) rs.getDouble("harga_max")),
+                                String.valueOf(rs.getInt("estimasi_hari")),
+                                rs.getString("status")};
+                    }
+                }
             }
+            return null;
+        }, d -> {
+            if (d != null) {
+                nama.setText(d[0]);
+                kategori.setSelectedItem(d[1]);
+                min.setText(d[2]);
+                max.setText(d[3]);
+                est.setText(d[4]);
+                status.setSelectedItem(d[5]);
+                applyKategori.run();
+            }
+        }, err -> dialog.showError("Gagal memuat data layanan."));
+    }
 
-        } catch (Exception e) {
-
-            JOptionPane.showMessageDialog(this, e);
-
+    private void save(int id, String nama, String est, String status,
+            String kategori, String min, String max) throws Exception {
+        Connection conn = Koneksi.getKoneksi();
+        if (id == 0) {
+            try (PreparedStatement pst = conn.prepareStatement(
+                    "INSERT INTO master_layanan (nama_layanan,estimasi_hari,"
+                    + "status,kategori,harga_min,harga_max) "
+                    + "VALUES(?,?,?,?,?,?)")) {
+                pst.setString(1, nama);
+                pst.setInt(2, Integer.parseInt(est));
+                pst.setString(3, status);
+                pst.setString(4, kategori);
+                pst.setDouble(5, Double.parseDouble(min));
+                pst.setDouble(6, Double.parseDouble(max));
+                pst.executeUpdate();
+            }
+        } else {
+            try (PreparedStatement pst = conn.prepareStatement(
+                    "UPDATE master_layanan SET nama_layanan=?, estimasi_hari=?, "
+                    + "status=?, kategori=?, harga_min=?, harga_max=? "
+                    + "WHERE id_layanan=?")) {
+                pst.setString(1, nama);
+                pst.setInt(2, Integer.parseInt(est));
+                pst.setString(3, status);
+                pst.setString(4, kategori);
+                pst.setDouble(5, Double.parseDouble(min));
+                pst.setDouble(6, Double.parseDouble(max));
+                pst.setInt(7, id);
+                pst.executeUpdate();
+            }
         }
     }
 
-    // ================= SEARCH =================
-    private void cariData() {
-
-        model.setRowCount(0);
-
-        try {
-
-            Connection conn =
-                    Koneksi.getKoneksi();
-
-            String sql =
-                    "SELECT * FROM master_layanan "
-                    + "WHERE nama_layanan ILIKE ?";
-
-            PreparedStatement pst =
-                    conn.prepareStatement(sql);
-
-            pst.setString(
-                    1,
-                    "%"
-                    + txtSearch.getText()
-                    + "%"
-            );
-
-            ResultSet rs =
-                    pst.executeQuery();
-
-            while (rs.next()) {
-
-                model.addRow(new Object[]{
-
-                    rs.getInt("id_layanan"),
-
-                    rs.getString("nama_layanan"),
-
-                    rs.getString("kategori"),
-
-                    rs.getString("harga_min"),
-
-                    rs.getString("harga_max"),
-
-                    rs.getString("estimasi_hari")
-                    + " Hari",
-
-                    rs.getString("status")
-
-                });
-            }
-
-        } catch (Exception e) {
-
-            JOptionPane.showMessageDialog(this, e);
-
-        }
-    }
-
-    // ================= HAPUS =================
-    private void hapusData() {
-
+    // ================= HAPUS (dengan penanganan FK) =================
+    private void hapus() {
         if (selectedId == 0) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Pilih data terlebih dahulu"
-            );
-
             return;
         }
-
-        int confirm =
-                JOptionPane.showConfirmDialog(
-                        this,
-                        "Yakin ingin menghapus data?",
-                        "Konfirmasi",
-                        JOptionPane.YES_NO_OPTION
-                );
-
-        if (confirm
-                == JOptionPane.YES_OPTION) {
-
-            try {
-
-                Connection conn =
-                        Koneksi.getKoneksi();
-
-                String sql =
-                        "DELETE FROM master_layanan "
-                        + "WHERE id_layanan=?";
-
-                PreparedStatement pst =
-                        conn.prepareStatement(sql);
-
-                pst.setInt(1, selectedId);
-
-                pst.executeUpdate();
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Data berhasil dihapus"
-                );
-
-                tampilData();
-
-                selectedId = 0;
-
-            } catch (Exception e) {
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        e
-                );
-
-            }
+        int r = table.getSelectedRow();
+        String nama = r >= 0 ? model.getValueAt(r, 1).toString() : "";
+        if (!DialogHelper.confirmDanger(this,
+                "Hapus layanan \"" + nama + "\" secara permanen?")) {
+            return;
         }
-    }
-    
-    // ================= EXPORT PDF =================
-    private void exportToPDF() {
-
-        try {
-
-            // ================= LOAD REPORT =================
-            InputStream reportStream = 
-                    getClass().getResourceAsStream(
-                            "/report/Layanan_report.jrxml"
-                    );
-
-            if (reportStream == null) {
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "File report tidak ditemukan"
-                );
-
-                return;
-            }
-
-            // ================= COMPILE REPORT =================
-            JasperReport jasperReport =
-                    JasperCompileManager.compileReport(
-                            reportStream
-                    );
-
-            // ================= FILL REPORT =================
+        final int id = selectedId;
+        Async.run(() -> {
             Connection conn = Koneksi.getKoneksi();
-
-            HashMap<String, Object> parameters =
-                    new HashMap<>();
-
-            JasperPrint jasperPrint =
-                    JasperFillManager.fillReport(
-                            jasperReport,
-                            parameters,
-                            conn
-                    );
-
-            // ================= CHOOSE SAVE LOCATION =================
-            JFileChooser fileChooser = new JFileChooser();
-
-            fileChooser.setDialogTitle("Simpan Laporan PDF");
-
-            SimpleDateFormat sdf =
-                    new SimpleDateFormat("yyyyMMdd_HHmmss");
-
-            String defaultFileName =
-                    "Laporan_Layanan_"
-                    + sdf.format(new java.util.Date())
-                    + ".pdf";
-
-            fileChooser.setSelectedFile(
-                    new java.io.File(defaultFileName)
-            );
-
-            int userSelection =
-                    fileChooser.showSaveDialog(this);
-
-            if (userSelection == JFileChooser.APPROVE_OPTION) {
-
-                String filePath =
-                        fileChooser.getSelectedFile()
-                                .getAbsolutePath();
-
-                // ================= ADD .pdf EXTENSION =================
-                if (!filePath.toLowerCase().endsWith(".pdf")) {
-
-                    filePath += ".pdf";
-                }
-
-                // ================= EXPORT TO PDF =================
-                JasperExportManager.exportReportToPdfFile(
-                        jasperPrint,
-                        filePath
-                );
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Laporan berhasil di-export ke:\n" + filePath
-                );
+            try (PreparedStatement pst = conn.prepareStatement(
+                    "DELETE FROM master_layanan WHERE id_layanan=?")) {
+                pst.setInt(1, id);
+                pst.executeUpdate();
             }
+            return null;
+        }, ok -> {
+            DialogHelper.success(this, "Layanan berhasil dihapus.");
+            loadData();
+        }, err -> {
+            if (isForeignKeyViolation(err)) {
+                DialogHelper.warn(this,
+                        "Layanan tidak dapat dihapus karena masih dipakai "
+                        + "pada transaksi.\nUbah statusnya menjadi 'nonaktif' "
+                        + "agar tidak muncul pada transaksi baru.");
+            } else {
+                DialogHelper.error(this, "Gagal menghapus layanan. Coba lagi.");
+            }
+        });
+    }
 
-        } catch (Exception e) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Error export PDF: " + e.getMessage()
-            );
-
-            e.printStackTrace();
+    private boolean isForeignKeyViolation(Throwable err) {
+        Throwable c = err;
+        while (c != null) {
+            if (c instanceof SQLException sq && "23503".equals(sq.getSQLState())) {
+                return true;
+            }
+            c = c.getCause();
         }
+        return false;
     }
 }

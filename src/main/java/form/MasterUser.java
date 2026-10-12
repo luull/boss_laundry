@@ -1,495 +1,455 @@
 package form;
 
+import com.formdev.flatlaf.FlatClientProperties;
+
 import koneksi.Koneksi;
-import java.awt.Color;
-import java.awt.Font;
+import koneksi.Session;
+
+import ui.Async;
+import ui.CardPanel;
+import ui.ComboItem;
+import ui.DialogHelper;
+import ui.DocListener;
+import ui.FormDialog;
+import ui.Icons;
+import ui.TableDownloader;
+import ui.UIFactory;
+import ui.UITheme;
+
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Window;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
-import javax.swing.JDialog;
 import javax.swing.JLabel;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
+import javax.swing.JPasswordField;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableModel;
 
+/**
+ * Halaman Master User: kelola akun pengguna (admin / kasir / owner) beserta
+ * cabangnya. Menambahkan pemeriksaan username unik dan mencegah penghapusan
+ * akun yang sedang login.
+ */
 public class MasterUser extends JPanel {
 
-    JLabel title = new JLabel("MASTER USER");
+    private final DefaultTableModel model = new DefaultTableModel(
+            new Object[]{"ID", "Username", "Role", "Cabang"}, 0);
+    private final JTable table = new JTable(model);
+    private final JTextField txtSearch = UIFactory.searchField("Cari username...");
+    private final JComboBox<String> cbRoleFilter = new JComboBox<>(
+            new String[]{"Semua Role", "admin", "kasir", "owner"});
+    private final JButton btnEdit = UIFactory.warningButton("Edit");
+    private final JButton btnHapus = UIFactory.dangerButton("Hapus");
+    private final JLabel statusLabel = UIFactory.muted("");
 
-    JLabel lblSearch = new JLabel("Search");
-    JTextField txtSearch = new JTextField();
-
-    JButton btnTambah = new JButton("+ Tambah User");
-    JButton btnEdit = new JButton("Edit");
-    JButton btnHapus = new JButton("Hapus");
-
-    JTable table = new JTable();
-    JScrollPane scroll = new JScrollPane(table);
-
-    DefaultTableModel model;
-
-    int selectedId = 0;
+    private int selectedId = 0;
 
     public MasterUser() {
+        setLayout(new BorderLayout(0, 16));
+        setOpaque(false);
+        add(buildTop(), BorderLayout.NORTH);
+        add(buildTable(), BorderLayout.CENTER);
+        wireEvents();
+        loadData();
+    }
 
-        setLayout(null);
-        setBackground(new Color(240, 248, 255));
+    private JPanel buildTop() {
+        JPanel top = new JPanel();
+        top.setOpaque(false);
+        top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
 
-        // TITLE
-        title.setBounds(30, 20, 300, 40);
-        title.setFont(new Font("Arial", Font.BOLD, 24));
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
+        header.setAlignmentX(LEFT_ALIGNMENT);
+        JPanel titleBox = new JPanel();
+        titleBox.setOpaque(false);
+        titleBox.setLayout(new BoxLayout(titleBox, BoxLayout.Y_AXIS));
+        JLabel title = UIFactory.h2("Master User");
+        title.setAlignmentX(LEFT_ALIGNMENT);
+        JLabel desc = UIFactory.muted("Kelola akun dan hak akses pengguna.");
+        desc.setFont(UITheme.small());
+        desc.setAlignmentX(LEFT_ALIGNMENT);
+        titleBox.add(title);
+        titleBox.add(Box.createVerticalStrut(2));
+        titleBox.add(desc);
+        header.add(titleBox, BorderLayout.WEST);
 
-        // BUTTON
-        btnTambah.setBounds(30, 80, 170, 35);
-        btnEdit.setBounds(220, 80, 100, 35);
-        btnHapus.setBounds(340, 80, 100, 35);
+        JButton btnDownload = UIFactory.successButton("Download PDF");
+        UIFactory.withIcon(btnDownload, Icons.PDF);
+        btnDownload.addActionListener(e -> TableDownloader.download(this, table,
+                "Daftar User", "Daftar_User"));
+        JButton btnTambah = UIFactory.primaryButton("Tambah User");
+        UIFactory.withIcon(btnTambah, Icons.PLUS);
+        btnTambah.addActionListener(e -> openForm(0));
+        JPanel hr = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        hr.setOpaque(false);
+        hr.add(btnDownload);
+        hr.add(btnTambah);
+        header.add(hr, BorderLayout.EAST);
+        top.add(header);
+        top.add(Box.createVerticalStrut(14));
 
-        lblSearch.setBounds(520, 80, 60, 35);
-        txtSearch.setBounds(580, 80, 150, 35);
+        CardPanel toolbar = new CardPanel(new BorderLayout(12, 0));
+        toolbar.setAlignmentX(LEFT_ALIGNMENT);
+        toolbar.setBorder(BorderFactory.createEmptyBorder(12, 14, 12, 14));
+        toolbar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 64));
 
-        // TABLE
-        scroll.setBounds(30, 140, 700, 320);
-
-        table.setRowHeight(25);
-
-        // MODEL
-        model = new DefaultTableModel();
-
-        model.addColumn("ID");
-        model.addColumn("Username");
-        model.addColumn("Role");
-        model.addColumn("Cabang");
-
-        table.setModel(model);
-
-        // ADD
-        add(title);
-
-        add(btnTambah);
-        add(btnEdit);
-        add(btnHapus);
-
-        add(lblSearch);
-        add(txtSearch);
-
-        add(scroll);
-
-        tampilData();
-
-        // ACTION
-        btnTambah.addActionListener(e -> formUser("Tambah"));
-
-        btnEdit.addActionListener(e -> {
-
-            if (selectedId == 0) {
-
-                JOptionPane.showMessageDialog(this,
-                        "Pilih data terlebih dahulu");
-
-            } else {
-
-                formUser("Edit");
-
-            }
-
+        JPanel left = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        left.setOpaque(false);
+        txtSearch.setPreferredSize(new Dimension(240, 38));
+        cbRoleFilter.setPreferredSize(new Dimension(150, 38));
+        JButton btnReset = UIFactory.secondaryButton("Reset");
+        btnReset.addActionListener(e -> {
+            txtSearch.setText("");
+            cbRoleFilter.setSelectedIndex(0);
+            loadData();
         });
+        left.add(txtSearch);
+        left.add(cbRoleFilter);
+        left.add(btnReset);
+        toolbar.add(left, BorderLayout.WEST);
 
-        btnHapus.addActionListener(e -> hapusData());
+        JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        right.setOpaque(false);
+        btnEdit.setEnabled(false);
+        btnHapus.setEnabled(false);
+        UIFactory.withIcon(btnEdit, Icons.EDIT);
+        UIFactory.withIcon(btnHapus, Icons.TRASH);
+        right.add(btnEdit);
+        right.add(btnHapus);
+        toolbar.add(right, BorderLayout.EAST);
 
-        txtSearch.addKeyListener(new java.awt.event.KeyAdapter() {
+        top.add(toolbar);
+        return top;
+    }
 
-            public void keyReleased(java.awt.event.KeyEvent evt) {
+    private JPanel buildTable() {
+        CardPanel card = new CardPanel(new BorderLayout());
+        card.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        UIFactory.styleTable(table);
+        table.getColumnModel().getColumn(0).setMaxWidth(60);
+        table.getColumnModel().getColumn(0)
+                .setCellRenderer(UIFactory.centerRenderer());
+        table.getColumnModel().getColumn(2).setMaxWidth(120);
+        table.getColumnModel().getColumn(2)
+                .setCellRenderer(UIFactory.centerRenderer());
+        card.add(UIFactory.tableScroll(table), BorderLayout.CENTER);
+        statusLabel.setBorder(BorderFactory.createEmptyBorder(8, 4, 0, 0));
+        card.add(statusLabel, BorderLayout.SOUTH);
+        return card;
+    }
 
-                cariData();
-
-            }
-
+    private void wireEvents() {
+        table.getSelectionModel().addListSelectionListener(e -> {
+            int r = table.getSelectedRow();
+            boolean sel = r >= 0;
+            selectedId = sel ? Integer.parseInt(model.getValueAt(r, 0).toString()) : 0;
+            btnEdit.setEnabled(sel);
+            btnHapus.setEnabled(sel);
         });
-
         table.addMouseListener(new java.awt.event.MouseAdapter() {
-
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
-
-                int row = table.getSelectedRow();
-
-                selectedId = Integer.parseInt(
-                        table.getValueAt(row, 0).toString()
-                );
-
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (e.getClickCount() == 2 && selectedId != 0) {
+                    openForm(selectedId);
+                }
             }
-
         });
+        btnEdit.addActionListener(e -> {
+            if (selectedId != 0) {
+                openForm(selectedId);
+            }
+        });
+        btnHapus.addActionListener(e -> hapus());
+        txtSearch.addActionListener(e -> loadData());
+        txtSearch.getDocument().addDocumentListener(new DocListener(this::loadData));
+        cbRoleFilter.addActionListener(e -> loadData());
+    }
+
+    // ================= DATA =================
+    private void loadData() {
+        statusLabel.setText("Memuat data...");
+        final String keyword = txtSearch.getText().trim();
+        final String role = cbRoleFilter.getSelectedIndex() == 0
+                ? null : (String) cbRoleFilter.getSelectedItem();
+        Async.run(() -> query(keyword, role),
+                rows -> {
+                    model.setRowCount(0);
+                    for (Object[] row : rows) {
+                        model.addRow(row);
+                    }
+                    selectedId = 0;
+                    btnEdit.setEnabled(false);
+                    btnHapus.setEnabled(false);
+                    statusLabel.setText(rows.isEmpty()
+                            ? "Tidak ada user."
+                            : rows.size() + " user ditemukan.");
+                },
+                err -> statusLabel.setText("Gagal memuat data user."));
+    }
+
+    private List<Object[]> query(String keyword, String role) throws Exception {
+        Connection conn = Koneksi.getKoneksi();
+        StringBuilder sql = new StringBuilder(
+                "SELECT u.id_user, u.username, u.role, c.nama_cabang "
+                + "FROM master_user u "
+                + "LEFT JOIN master_cabang c ON u.id_cabang = c.id_cabang "
+                + "WHERE 1=1");
+        List<Object> params = new ArrayList<>();
+        if (!keyword.isEmpty()) {
+            sql.append(" AND u.username ILIKE ?");
+            params.add("%" + keyword + "%");
+        }
+        if (role != null) {
+            sql.append(" AND u.role = ?");
+            params.add(role);
+        }
+        sql.append(" ORDER BY u.id_user");
+        List<Object[]> rows = new ArrayList<>();
+        try (PreparedStatement pst = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                pst.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = pst.executeQuery()) {
+                while (rs.next()) {
+                    rows.add(new Object[]{
+                            rs.getInt("id_user"),
+                            rs.getString("username"),
+                            rs.getString("role"),
+                            rs.getString("nama_cabang")});
+                }
+            }
+        }
+        return rows;
     }
 
     // ================= FORM =================
-    private void formUser(String mode) {
+    private void openForm(int id) {
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        boolean edit = id != 0;
+        FormDialog dialog = new FormDialog(owner,
+                edit ? "Edit User" : "Tambah User",
+                edit ? "Perbarui akun pengguna." : "Buat akun pengguna baru.");
 
-        JDialog dialog = new JDialog();
-
-        dialog.setTitle(mode + " User");
-        dialog.setSize(420, 450);
-        dialog.setLayout(null);
-        dialog.setLocationRelativeTo(null);
-        dialog.setModal(true);
-
-        JLabel lblUsername = new JLabel("Username");
-        JLabel lblPassword = new JLabel("Password");
-        JLabel lblRole = new JLabel("Role");
-        JLabel lblCabang = new JLabel("Cabang");
-
-        JTextField txtUsername = new JTextField();
-        JTextField txtPassword = new JTextField();
-
-        String[] roleList = {"admin", "kasir", "owner"};
-
+        JTextField txtUsername = UIFactory.textField();
+        JPasswordField txtPassword = new JPasswordField();
+        txtPassword.setFont(UITheme.body());
+        txtPassword.putClientProperty(FlatClientProperties.STYLE,
+                "showRevealButton:true");
         JComboBox<String> cbRole =
-                new JComboBox<>(roleList);
+                new JComboBox<>(new String[]{"admin", "kasir", "owner"});
+        JComboBox<ComboItem> cbCabang = new JComboBox<>();
 
-        JComboBox<String> cbCabang =
-                new JComboBox<>();
+        dialog.addRow("Username", txtUsername);
+        dialog.addRow("Password", txtPassword);
+        dialog.addRow("Role", cbRole);
+        dialog.addRow("Cabang", cbCabang);
 
-        JButton btnSimpan = new JButton("Simpan");
-
-        lblUsername.setBounds(30, 40, 120, 30);
-        txtUsername.setBounds(150, 40, 200, 30);
-
-        lblPassword.setBounds(30, 100, 120, 30);
-        txtPassword.setBounds(150, 100, 200, 30);
-
-        lblRole.setBounds(30, 160, 120, 30);
-        cbRole.setBounds(150, 160, 200, 30);
-
-        lblCabang.setBounds(30, 220, 120, 30);
-        cbCabang.setBounds(150, 220, 200, 30);
-
-        btnSimpan.setBounds(150, 300, 120, 35);
-
-        // ================= LOAD CABANG =================
-        try {
-
-            Connection conn = Koneksi.getKoneksi();
-
-            String sql = "SELECT * FROM master_cabang";
-
-            PreparedStatement pst =
-                    conn.prepareStatement(sql);
-
-            ResultSet rs = pst.executeQuery();
-
-            while (rs.next()) {
-
-                cbCabang.addItem(
-                        rs.getInt("id_cabang")
-                        + " - "
-                        + rs.getString("nama_cabang")
-                );
+        loadCabang(cbCabang, () -> {
+            if (edit) {
+                loadForEdit(id, txtUsername, txtPassword, cbRole, cbCabang, dialog);
             }
+        }, dialog);
 
-        } catch (Exception e) {
+        dialog.onSave(() -> {
+            dialog.clearError();
+            String username = txtUsername.getText().trim();
+            String password = new String(txtPassword.getPassword());
 
-            JOptionPane.showMessageDialog(dialog, e);
-
-        }
-
-        // ================= EDIT MODE =================
-        if (mode.equals("Edit")) {
-
-            try {
-
-                Connection conn = Koneksi.getKoneksi();
-
-                String sql =
-                        "SELECT * FROM master_user "
-                        + "WHERE id_user=?";
-
-                PreparedStatement pst =
-                        conn.prepareStatement(sql);
-
-                pst.setInt(1, selectedId);
-
-                ResultSet rs = pst.executeQuery();
-
-                if (rs.next()) {
-
-                    txtUsername.setText(
-                            rs.getString("username"));
-
-                    txtPassword.setText(
-                            rs.getString("password"));
-
-                    cbRole.setSelectedItem(
-                            rs.getString("role"));
-
-                    // set cabang
-                    int idCabang =
-                            rs.getInt("id_cabang");
-
-                    for (int i = 0;
-                            i < cbCabang.getItemCount();
-                            i++) {
-
-                        String item =
-                                cbCabang.getItemAt(i);
-
-                        if (item.startsWith(
-                                idCabang + " -")) {
-
-                            cbCabang.setSelectedIndex(i);
-                            break;
-                        }
-                    }
-                }
-
-            } catch (Exception e) {
-
-                JOptionPane.showMessageDialog(dialog, e);
-
-            }
-        }
-
-        // ================= SAVE =================
-        btnSimpan.addActionListener(e -> {
-
-            if (txtUsername.getText().trim().isEmpty()) {
-
-                JOptionPane.showMessageDialog(dialog,
-                        "Username wajib diisi");
-
+            if (username.isEmpty()) {
+                dialog.showError("Username wajib diisi.");
                 return;
             }
-
-            if (txtPassword.getText().trim().isEmpty()) {
-
-                JOptionPane.showMessageDialog(dialog,
-                        "Password wajib diisi");
-
+            if (username.length() < 3) {
+                dialog.showError("Username minimal 3 karakter.");
                 return;
             }
+            if (password.isEmpty()) {
+                dialog.showError("Password wajib diisi.");
+                return;
+            }
+            if (cbCabang.getSelectedItem() == null) {
+                dialog.showError("Cabang wajib dipilih.");
+                return;
+            }
+            int idCabang = ((ComboItem) cbCabang.getSelectedItem()).getId();
+            String role = (String) cbRole.getSelectedItem();
 
-            try {
-
-                Connection conn = Koneksi.getKoneksi();
-
-                String cabang =
-                        cbCabang.getSelectedItem().toString();
-
-                int idCabang =
-                        Integer.parseInt(
-                                cabang.split(" - ")[0]
-                        );
-
-                // INSERT
-                if (mode.equals("Tambah")) {
-
-                    String sql =
-                            "INSERT INTO master_user "
-                            + "(username,password,role,id_cabang)"
-                            + " VALUES(?,?,?,?)";
-
-                    PreparedStatement pst =
-                            conn.prepareStatement(sql);
-
-                    pst.setString(1, txtUsername.getText());
-                    pst.setString(2, txtPassword.getText());
-
-                    pst.setString(3,
-                            cbRole.getSelectedItem().toString());
-
-                    pst.setInt(4, idCabang);
-
-                    pst.executeUpdate();
-
-                    JOptionPane.showMessageDialog(dialog,
-                            "Data berhasil disimpan");
-
-                } else {
-
-                    // UPDATE
-                    String sql =
-                            "UPDATE master_user SET "
-                            + "username=?, "
-                            + "password=?, "
-                            + "role=?, "
-                            + "id_cabang=? "
-                            + "WHERE id_user=?";
-
-                    PreparedStatement pst =
-                            conn.prepareStatement(sql);
-
-                    pst.setString(1, txtUsername.getText());
-                    pst.setString(2, txtPassword.getText());
-
-                    pst.setString(3,
-                            cbRole.getSelectedItem().toString());
-
-                    pst.setInt(4, idCabang);
-
-                    pst.setInt(5, selectedId);
-
-                    pst.executeUpdate();
-
-                    JOptionPane.showMessageDialog(dialog,
-                            "Data berhasil diupdate");
+            dialog.setSaving(true);
+            Async.run(() -> {
+                if (usernameTaken(username, id)) {
+                    throw new IllegalStateException("DUP");
                 }
-
-                tampilData();
-
+                save(id, username, password, role, idCabang);
+                return null;
+            }, ok -> {
+                dialog.setSaving(false);
                 dialog.dispose();
-
-            } catch (Exception ex) {
-
-                JOptionPane.showMessageDialog(dialog, ex);
-
-            }
-
+                DialogHelper.success(this, edit
+                        ? "User berhasil diperbarui."
+                        : "User baru berhasil ditambahkan.");
+                loadData();
+            }, err -> {
+                dialog.setSaving(false);
+                if (err instanceof IllegalStateException
+                        && "DUP".equals(err.getMessage())) {
+                    dialog.showError("Username sudah digunakan. Pilih yang lain.");
+                } else {
+                    dialog.showError("Gagal menyimpan user. Coba lagi.");
+                }
+            });
         });
 
-        dialog.add(lblUsername);
-        dialog.add(txtUsername);
-
-        dialog.add(lblPassword);
-        dialog.add(txtPassword);
-
-        dialog.add(lblRole);
-        dialog.add(cbRole);
-
-        dialog.add(lblCabang);
-        dialog.add(cbCabang);
-
-        dialog.add(btnSimpan);
-
-        dialog.setVisible(true);
+        dialog.display();
     }
 
-    // ================= TAMPIL DATA =================
-    private void tampilData() {
-
-        model.setRowCount(0);
-
-        try {
-
-            Connection conn = Koneksi.getKoneksi();
-
-            String sql =
-                    "SELECT u.*, c.nama_cabang "
-                    + "FROM master_user u "
-                    + "JOIN master_cabang c "
-                    + "ON u.id_cabang = c.id_cabang";
-
-            PreparedStatement pst = conn.prepareStatement(sql);
-
-            ResultSet rs = pst.executeQuery();
-
-            while (rs.next()) {
-
-                model.addRow(new Object[]{
-                    rs.getInt("id_user"),
-                    rs.getString("username"),
-                    rs.getString("role"),
-                    rs.getString("nama_cabang")
-                });
+    private boolean usernameTaken(String username, int excludeId)
+            throws Exception {
+        Connection conn = Koneksi.getKoneksi();
+        try (PreparedStatement pst = conn.prepareStatement(
+                "SELECT COUNT(*) FROM master_user "
+                + "WHERE LOWER(username)=LOWER(?) AND id_user<>?")) {
+            pst.setString(1, username);
+            pst.setInt(2, excludeId);
+            try (ResultSet rs = pst.executeQuery()) {
+                return rs.next() && rs.getLong(1) > 0;
             }
-
-        } catch (Exception e) {
-
-            JOptionPane.showMessageDialog(this, e);
-
         }
     }
 
-    // ================= SEARCH =================
-    private void cariData() {
-
-        model.setRowCount(0);
-
-        try {
-
+    private void loadCabang(JComboBox<ComboItem> combo, Runnable after,
+            FormDialog dialog) {
+        Async.run(() -> {
             Connection conn = Koneksi.getKoneksi();
-
-            String sql =
-                    "SELECT u.*, c.nama_cabang "
-                    + "FROM master_user u "
-                    + "JOIN master_cabang c "
-                    + "ON u.id_cabang = c.id_cabang "
-                    + "WHERE username ILIKE ?";
-
-            PreparedStatement pst =
-                    conn.prepareStatement(sql);
-
-            pst.setString(1,
-                    "%" + txtSearch.getText() + "%");
-
-            ResultSet rs = pst.executeQuery();
-
-            while (rs.next()) {
-
-                model.addRow(new Object[]{
-                    rs.getInt("id_user"),
-                    rs.getString("username"),
-                    rs.getString("role"),
-                    rs.getString("nama_cabang")
-                });
+            List<ComboItem> items = new ArrayList<>();
+            try (PreparedStatement pst = conn.prepareStatement(
+                    "SELECT id_cabang, nama_cabang FROM master_cabang "
+                    + "ORDER BY nama_cabang");
+                 ResultSet rs = pst.executeQuery()) {
+                while (rs.next()) {
+                    items.add(new ComboItem(rs.getInt("id_cabang"),
+                            rs.getString("nama_cabang")));
+                }
             }
+            return items;
+        }, items -> {
+            combo.removeAllItems();
+            for (ComboItem it : items) {
+                combo.addItem(it);
+            }
+            if (after != null) {
+                after.run();
+            }
+        }, err -> dialog.showError("Gagal memuat daftar cabang."));
+    }
 
-        } catch (Exception e) {
+    private void loadForEdit(int id, JTextField username,
+            JPasswordField password, JComboBox<String> role,
+            JComboBox<ComboItem> cabang, FormDialog dialog) {
+        Async.run(() -> {
+            Connection conn = Koneksi.getKoneksi();
+            try (PreparedStatement pst = conn.prepareStatement(
+                    "SELECT * FROM master_user WHERE id_user=?")) {
+                pst.setInt(1, id);
+                try (ResultSet rs = pst.executeQuery()) {
+                    if (rs.next()) {
+                        Object[] d = new Object[4];
+                        d[0] = rs.getString("username");
+                        d[1] = rs.getString("password");
+                        d[2] = rs.getString("role");
+                        d[3] = rs.getInt("id_cabang");
+                        return d;
+                    }
+                }
+            }
+            return null;
+        }, d -> {
+            if (d != null) {
+                username.setText(d[0] == null ? "" : d[0].toString());
+                password.setText(d[1] == null ? "" : d[1].toString());
+                if (d[2] != null) {
+                    role.setSelectedItem(d[2].toString());
+                }
+                int idc = (int) d[3];
+                for (int i = 0; i < cabang.getItemCount(); i++) {
+                    if (cabang.getItemAt(i).getId() == idc) {
+                        cabang.setSelectedIndex(i);
+                        break;
+                    }
+                }
+            }
+        }, err -> dialog.showError("Gagal memuat data user."));
+    }
 
-            JOptionPane.showMessageDialog(this, e);
-
+    private void save(int id, String username, String password, String role,
+            int idCabang) throws Exception {
+        Connection conn = Koneksi.getKoneksi();
+        if (id == 0) {
+            try (PreparedStatement pst = conn.prepareStatement(
+                    "INSERT INTO master_user (username,password,role,id_cabang) "
+                    + "VALUES(?,?,?,?)")) {
+                pst.setString(1, username);
+                pst.setString(2, password);
+                pst.setString(3, role);
+                pst.setInt(4, idCabang);
+                pst.executeUpdate();
+            }
+        } else {
+            try (PreparedStatement pst = conn.prepareStatement(
+                    "UPDATE master_user SET username=?, password=?, role=?, "
+                    + "id_cabang=? WHERE id_user=?")) {
+                pst.setString(1, username);
+                pst.setString(2, password);
+                pst.setString(3, role);
+                pst.setInt(4, idCabang);
+                pst.setInt(5, id);
+                pst.executeUpdate();
+            }
         }
     }
 
     // ================= HAPUS =================
-    private void hapusData() {
-
+    private void hapus() {
         if (selectedId == 0) {
-
-            JOptionPane.showMessageDialog(this,
-                    "Pilih data terlebih dahulu");
-
             return;
         }
-
-        int confirm = JOptionPane.showConfirmDialog(
-                this,
-                "Yakin ingin menghapus data?",
-                "Konfirmasi",
-                JOptionPane.YES_NO_OPTION
-        );
-
-        if (confirm == JOptionPane.YES_OPTION) {
-
-            try {
-
-                Connection conn = Koneksi.getKoneksi();
-
-                String sql =
-                        "DELETE FROM master_user "
-                        + "WHERE id_user=?";
-
-                PreparedStatement pst =
-                        conn.prepareStatement(sql);
-
-                pst.setInt(1, selectedId);
-
-                pst.executeUpdate();
-
-                JOptionPane.showMessageDialog(this,
-                        "Data berhasil dihapus");
-
-                tampilData();
-
-                selectedId = 0;
-
-            } catch (Exception e) {
-
-                JOptionPane.showMessageDialog(this, e);
-
-            }
+        if (selectedId == Session.idUser) {
+            DialogHelper.warn(this,
+                    "Anda tidak dapat menghapus akun yang sedang digunakan.");
+            return;
         }
+        int r = table.getSelectedRow();
+        String uname = r >= 0 ? model.getValueAt(r, 1).toString() : "";
+        if (!DialogHelper.confirmDanger(this,
+                "Hapus user \"" + uname + "\" secara permanen?")) {
+            return;
+        }
+        final int id = selectedId;
+        Async.run(() -> {
+            Connection conn = Koneksi.getKoneksi();
+            try (PreparedStatement pst = conn.prepareStatement(
+                    "DELETE FROM master_user WHERE id_user=?")) {
+                pst.setInt(1, id);
+                pst.executeUpdate();
+            }
+            return null;
+        }, ok -> {
+            DialogHelper.success(this, "User berhasil dihapus.");
+            loadData();
+        }, err -> DialogHelper.error(this, "Gagal menghapus user. Coba lagi."));
     }
 }

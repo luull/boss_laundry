@@ -58,6 +58,12 @@ public final class Koneksi {
     /** Timeout (detik) untuk validasi dan pembuatan koneksi. */
     private static final int TIMEOUT_DETIK = 10;
 
+    /** Jumlah percobaan koneksi saat handshake awal gagal (SSL reset pooler). */
+    private static final int MAX_PERCOBAAN = 3;
+
+    /** Jeda antar percobaan koneksi (milidetik). */
+    private static final long JEDA_PERCOBAAN_MS = 700L;
+
     /** Koneksi tunggal yang dipakai ulang oleh seluruh aplikasi. */
     private static Connection koneksi;
 
@@ -112,38 +118,62 @@ public final class Koneksi {
         try {
             // Pastikan driver PostgreSQL ter-load (eksplisit, aman untuk shaded JAR).
             Class.forName("org.postgresql.Driver");
-
-            DriverManager.setLoginTimeout(TIMEOUT_DETIK);
-
-            LOGGER.log(Level.INFO,
-                    "Menghubungkan ke database {0} (SSL: {1}).",
-                    new Object[]{cfg.ringkasanAman(), cfg.sslmode});
-
-            Connection c;
-            if (cfg.urlSudahAdaKredensial()) {
-                // user & password sudah ada di dalam URL (query string).
-                c = DriverManager.getConnection(url);
-            } else {
-                c = DriverManager.getConnection(url, cfg.user, cfg.password);
-            }
-
-            LOGGER.info("Koneksi ke Supabase berhasil.");
-            return c;
-
         } catch (ClassNotFoundException e) {
             throw new KoneksiException(
                     "Driver PostgreSQL tidak ditemukan. Pastikan dependency "
                     + "org.postgresql:postgresql tersedia pada classpath.", e);
-
-        } catch (SQLException e) {
-            // Jangan pernah menyertakan password pada pesan/log.
-            LOGGER.log(Level.SEVERE,
-                    "Gagal membuka koneksi ke " + cfg.ringkasanAman(), e);
-            throw new KoneksiException(
-                    "Koneksi ke database gagal. Periksa konfigurasi Supabase "
-                    + "(host, port, database, user, password, SSL) serta "
-                    + "koneksi internet Anda.\nDetail: " + e.getMessage(), e);
         }
+
+        DriverManager.setLoginTimeout(TIMEOUT_DETIK);
+
+        // Pooler Supabase kadang me-reset handshake SSL pada percobaan pertama
+        // (terutama setelah idle). Lakukan beberapa kali percobaan singkat
+        // agar tidak muncul kegagalan koneksi palsu pada aksi pertama pengguna.
+        SQLException terakhir = null;
+        for (int percobaan = 1; percobaan <= MAX_PERCOBAAN; percobaan++) {
+            try {
+                LOGGER.log(Level.INFO,
+                        "Menghubungkan ke database {0} (SSL: {1}, percobaan {2}/{3}).",
+                        new Object[]{cfg.ringkasanAman(), cfg.sslmode,
+                                percobaan, MAX_PERCOBAAN});
+
+                Connection c;
+                if (cfg.urlSudahAdaKredensial()) {
+                    // user & password sudah ada di dalam URL (query string).
+                    c = DriverManager.getConnection(url);
+                } else {
+                    c = DriverManager.getConnection(url, cfg.user, cfg.password);
+                }
+
+                LOGGER.info("Koneksi ke Supabase berhasil.");
+                return c;
+
+            } catch (SQLException e) {
+                terakhir = e;
+                LOGGER.log(Level.WARNING,
+                        "Percobaan koneksi {0} gagal ke {1}: {2}",
+                        new Object[]{percobaan, cfg.ringkasanAman(),
+                                e.getMessage()});
+                if (percobaan < MAX_PERCOBAAN) {
+                    try {
+                        Thread.sleep(JEDA_PERCOBAAN_MS);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Semua percobaan gagal. Jangan pernah menyertakan password pada pesan.
+        LOGGER.log(Level.SEVERE,
+                "Gagal membuka koneksi ke " + cfg.ringkasanAman(), terakhir);
+        throw new KoneksiException(
+                "Koneksi ke database gagal. Periksa konfigurasi Supabase "
+                + "(host, port, database, user, password, SSL) serta "
+                + "koneksi internet Anda.\nDetail: "
+                + (terakhir == null ? "tidak diketahui" : terakhir.getMessage()),
+                terakhir);
     }
 
     // ==================================================================

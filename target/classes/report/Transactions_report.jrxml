@@ -3,11 +3,11 @@
 	<property name="template.engine" value="tabular_template"/>
 	<property name="com.jaspersoft.studio.data.sql.tables" value=""/>
 	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="Bozz Laundry"/>
-	<style name="Title" forecolor="#FFFFFF" fontName="Times New Roman" fontSize="50.0" bold="false" pdfFontName="Times-Bold"/>
-	<style name="SubTitle" forecolor="#CCCCCC" fontName="Times New Roman" fontSize="18.0" bold="false" pdfFontName="Times-Roman"/>
-	<style name="Column header" forecolor="#666666" fontName="Times New Roman" fontSize="14.0" bold="true" pdfFontName="Times-Roman"/>
-	<style name="Detail" mode="Transparent" fontName="Times New Roman" pdfFontName="Times-Roman"/>
-	<style name="Row" mode="Transparent" fontName="Times New Roman" pdfFontName="Times-Roman">
+	<style name="Title" forecolor="#FFFFFF" fontName="SansSerif" fontSize="50.0" bold="false" pdfFontName="Times-Bold"/>
+	<style name="SubTitle" forecolor="#CCCCCC" fontName="SansSerif" fontSize="18.0" bold="false" pdfFontName="Times-Roman"/>
+	<style name="Column header" forecolor="#666666" fontName="SansSerif" fontSize="14.0" bold="true" pdfFontName="Times-Roman"/>
+	<style name="Detail" mode="Transparent" fontName="SansSerif" pdfFontName="Times-Roman"/>
+	<style name="Row" mode="Transparent" fontName="SansSerif" pdfFontName="Times-Roman">
 		<conditionalStyle mode="Opaque" backcolor="#EEEFF0">
 			<conditionExpression><![CDATA[$V{REPORT_COUNT}%2 == 0]]></conditionExpression>
 		</conditionalStyle>
@@ -53,6 +53,9 @@
 	</style>
 	<dataset name="tableDataset" uuid="b61c32d5-2e01-478f-bc14-d528c5a3e1d1">
 		<property name="com.jaspersoft.studio.data.defaultdataadapter" value="Bozz Laundry"/>
+		<parameter name="id_cabang" class="java.lang.Integer"/>
+		<parameter name="tgl_awal" class="java.sql.Date"/>
+		<parameter name="tgl_akhir" class="java.sql.Date"/>
 		<query language="SQL"><![CDATA[SELECT
     t.kode_invoice,
     p.nama_pelanggan,
@@ -66,7 +69,11 @@ FROM transaksi_laundry t
 JOIN master_pelanggan p
 ON t.id_pelanggan = p.id_pelanggan
 JOIN master_layanan l
-ON t.id_layanan = l.id_layanan]]></query>
+ON t.id_layanan = l.id_layanan
+WHERE t.id_cabang = COALESCE($P{id_cabang}, t.id_cabang)
+  AND t.tanggal_masuk >= COALESCE($P{tgl_awal}, t.tanggal_masuk)
+  AND t.tanggal_masuk <= COALESCE($P{tgl_akhir}, t.tanggal_masuk)
+ORDER BY t.tanggal_masuk DESC, t.id_transaksi DESC]]></query>
 		<field name="kode_invoice" class="java.lang.String">
 			<property name="com.jaspersoft.studio.field.name" value="kode_invoice"/>
 			<property name="com.jaspersoft.studio.field.label" value="kode_invoice"/>
@@ -111,6 +118,9 @@ ON t.id_layanan = l.id_layanan]]></query>
 			<expression><![CDATA[$F{total_harga}]]></expression>
 		</variable>
 	</dataset>
+	<parameter name="id_cabang" class="java.lang.Integer"/>
+	<parameter name="tgl_awal" class="java.sql.Date"/>
+	<parameter name="tgl_akhir" class="java.sql.Date"/>
 	<query language="sql"><![CDATA[]]></query>
 	<field name="kode_invoice" class="java.lang.String">
 		<property name="com.jaspersoft.studio.field.name" value="kode_invoice"/>
@@ -179,7 +189,7 @@ ON t.id_layanan = l.id_layanan]]></query>
 			<expression><![CDATA["invoice_logo.png"]]></expression>
 		</element>
 		<element kind="staticText" uuid="e622555d-198b-4ccd-a4a1-c59c53304058" x="95" y="0" width="210" height="25" fontSize="19.0" bold="true">
-			<text><![CDATA[Bozz Laundry]]></text>
+			<text><![CDATA[Boss Laundry]]></text>
 			<property name="local_mesure_unitheight" value="pixel"/>
 			<property name="com.jaspersoft.studio.unit.height" value="px"/>
 		</element>
@@ -195,17 +205,26 @@ ON t.id_layanan = l.id_layanan]]></query>
 		<element kind="component" uuid="f10274ca-e83f-4449-a9b7-cb7676aabfe0" x="0" y="126" width="555" height="110">
 			<component kind="table">
 				<datasetRun uuid="b9ca8f5d-5354-4fa3-9a66-cbb4eb9ef567" subDataset="tableDataset">
+					<parameter name="id_cabang">
+						<expression><![CDATA[$P{id_cabang}]]></expression>
+					</parameter>
+					<parameter name="tgl_awal">
+						<expression><![CDATA[$P{tgl_awal}]]></expression>
+					</parameter>
+					<parameter name="tgl_akhir">
+						<expression><![CDATA[$P{tgl_akhir}]]></expression>
+					</parameter>
 					<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
 				</datasetRun>
 				<column kind="single" uuid="bad8a50a-0b04-4ab1-9d93-038bb4795856" width="90">
 					<columnHeader height="30" rowSpan="1" style="Table_CH">
-						<element kind="staticText" uuid="2dbc038e-a444-4dd5-97b1-ab40b6248fa9" key="" x="0" y="0" width="90" height="30" forecolor="#000000" fontName="DejaVu Sans" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" style="Table_TD">
+						<element kind="staticText" uuid="2dbc038e-a444-4dd5-97b1-ab40b6248fa9" key="" x="0" y="0" width="90" height="30" forecolor="#000000" fontName="SansSerif" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" style="Table_TD">
 							<text><![CDATA[INV CODE]]></text>
 							<box leftPadding="2" style="Table_TD"/>
 						</element>
 					</columnHeader>
 					<detailCell height="30" style="Table_TD">
-						<element kind="textField" uuid="f0262cdb-a090-48ec-a88e-b5a40ec86632" x="0" y="0" width="90" height="30" fontName="DejaVu Sans" fontSize="10.0" style="Detail">
+						<element kind="textField" uuid="f0262cdb-a090-48ec-a88e-b5a40ec86632" x="0" y="0" width="90" height="30" fontName="SansSerif" fontSize="10.0" style="Detail">
 							<expression><![CDATA[$F{kode_invoice}]]></expression>
 							<box leftPadding="2" style="Detail"/>
 						</element>
@@ -215,13 +234,13 @@ ON t.id_layanan = l.id_layanan]]></query>
 				</column>
 				<column kind="single" uuid="bfafda0e-0cc3-4a9a-a219-57fb430eff83" width="69">
 					<columnHeader height="30" rowSpan="1" style="Table_CH">
-						<element kind="staticText" uuid="b30b3885-0ea9-4f15-8dc9-ae76cecded75" key="" x="0" y="0" width="69" height="30" forecolor="#000000" fontName="DejaVu Sans" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" style="Column header">
+						<element kind="staticText" uuid="b30b3885-0ea9-4f15-8dc9-ae76cecded75" key="" x="0" y="0" width="69" height="30" forecolor="#000000" fontName="SansSerif" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" style="Column header">
 							<text><![CDATA[NAMA]]></text>
 							<box leftPadding="2" style="Column header"/>
 						</element>
 					</columnHeader>
 					<detailCell height="30" style="Table_TD">
-						<element kind="textField" uuid="74224d60-c361-4529-96e2-a54adb9400d4" x="0" y="0" width="69" height="30" fontName="DejaVu Sans" fontSize="10.0" style="Detail">
+						<element kind="textField" uuid="74224d60-c361-4529-96e2-a54adb9400d4" x="0" y="0" width="69" height="30" fontName="SansSerif" fontSize="10.0" style="Detail">
 							<expression><![CDATA[$F{nama_pelanggan}]]></expression>
 							<box leftPadding="2" style="Detail"/>
 						</element>
@@ -230,13 +249,13 @@ ON t.id_layanan = l.id_layanan]]></query>
 				</column>
 				<column kind="single" uuid="9f93fc7a-a665-4050-ac7e-24c29579faa9" width="69">
 					<columnHeader height="30" rowSpan="1" style="Table_CH">
-						<element kind="staticText" uuid="eb0d5b2f-0f41-4a1c-b8e4-3a0c4ec40ae8" key="" x="0" y="0" width="69" height="30" forecolor="#000000" fontName="DejaVu Sans" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" style="Column header">
+						<element kind="staticText" uuid="eb0d5b2f-0f41-4a1c-b8e4-3a0c4ec40ae8" key="" x="0" y="0" width="69" height="30" forecolor="#000000" fontName="SansSerif" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" style="Column header">
 							<text><![CDATA[LAYANAN]]></text>
 							<box leftPadding="2" style="Column header"/>
 						</element>
 					</columnHeader>
 					<detailCell height="30" style="Table_TD">
-						<element kind="textField" uuid="fa20abec-7346-4204-8a64-9073b985388e" x="0" y="0" width="69" height="30" fontName="DejaVu Sans" fontSize="10.0" style="Detail">
+						<element kind="textField" uuid="fa20abec-7346-4204-8a64-9073b985388e" x="0" y="0" width="69" height="30" fontName="SansSerif" fontSize="10.0" style="Detail">
 							<expression><![CDATA[$F{nama_layanan}]]></expression>
 							<box leftPadding="2" style="Detail"/>
 						</element>
@@ -245,13 +264,13 @@ ON t.id_layanan = l.id_layanan]]></query>
 				</column>
 				<column kind="single" uuid="96d7b36c-632d-4172-98fd-c4f30b72a3cc" width="52">
 					<columnHeader height="30" rowSpan="1" style="Table_CH">
-						<element kind="staticText" uuid="472c6d8d-9d08-44ab-9be0-cb520de286bf" key="" x="0" y="0" width="52" height="30" forecolor="#000000" fontName="DejaVu Sans" fontSize="10.0" bold="true" vTextAlign="Middle" style="Column header">
+						<element kind="staticText" uuid="472c6d8d-9d08-44ab-9be0-cb520de286bf" key="" x="0" y="0" width="52" height="30" forecolor="#000000" fontName="SansSerif" fontSize="10.0" bold="true" vTextAlign="Middle" style="Column header">
 							<text><![CDATA[BERAT]]></text>
 							<box leftPadding="2" style="Column header"/>
 						</element>
 					</columnHeader>
 					<detailCell height="30" style="Table_TD">
-						<element kind="textField" uuid="1bdbcc62-7765-4e87-8027-a44dfd10ae74" x="0" y="0" width="52" height="30" fontName="DejaVu Sans" fontSize="10.0" style="Detail">
+						<element kind="textField" uuid="1bdbcc62-7765-4e87-8027-a44dfd10ae74" x="0" y="0" width="52" height="30" fontName="SansSerif" fontSize="10.0" style="Detail">
 							<expression><![CDATA[$F{berat}]]></expression>
 							<box leftPadding="2" style="Detail"/>
 						</element>
@@ -260,13 +279,13 @@ ON t.id_layanan = l.id_layanan]]></query>
 				</column>
 				<column kind="single" uuid="bc0f3108-7c38-43a9-832f-54dceb365321" width="69">
 					<columnHeader height="30" rowSpan="1" style="Table_CH">
-						<element kind="staticText" uuid="53149014-7fff-4f76-98b6-4ace40fb4c7a" key="" x="0" y="0" width="69" height="30" forecolor="#000000" fontName="DejaVu Sans" fontSize="10.0" bold="true" vTextAlign="Middle" style="Column header">
+						<element kind="staticText" uuid="53149014-7fff-4f76-98b6-4ace40fb4c7a" key="" x="0" y="0" width="69" height="30" forecolor="#000000" fontName="SansSerif" fontSize="10.0" bold="true" vTextAlign="Middle" style="Column header">
 							<text><![CDATA[TAMBAHAN]]></text>
 							<box leftPadding="2" style="Column header"/>
 						</element>
 					</columnHeader>
 					<detailCell height="30" style="Table_TD">
-						<element kind="textField" uuid="5ee40ace-40c5-44e2-a313-7c97521d12cf" x="0" y="0" width="69" height="30" fontName="DejaVu Sans" fontSize="10.0" style="Detail">
+						<element kind="textField" uuid="5ee40ace-40c5-44e2-a313-7c97521d12cf" x="0" y="0" width="69" height="30" fontName="SansSerif" fontSize="10.0" style="Detail">
 							<expression><![CDATA[$F{addons}]]></expression>
 							<box leftPadding="2" style="Detail"/>
 						</element>
@@ -275,13 +294,13 @@ ON t.id_layanan = l.id_layanan]]></query>
 				</column>
 				<column kind="single" uuid="59b774cc-678c-4051-80f5-0e6042583b80" width="69">
 					<columnHeader height="30" rowSpan="1" style="Table_CH">
-						<element kind="staticText" uuid="f585a6be-bed8-442f-b5cc-32911ee767a5" key="" x="0" y="0" width="69" height="30" forecolor="#000000" fontName="DejaVu Sans" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" style="Column header">
+						<element kind="staticText" uuid="f585a6be-bed8-442f-b5cc-32911ee767a5" key="" x="0" y="0" width="69" height="30" forecolor="#000000" fontName="SansSerif" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" style="Column header">
 							<text><![CDATA[TOTAL]]></text>
 							<box leftPadding="2" style="Column header"/>
 						</element>
 					</columnHeader>
 					<detailCell height="30" style="Table_TD">
-						<element kind="textField" uuid="1e7cc1c7-3a52-4c12-b7b2-30a5816980ee" x="0" y="0" width="69" height="30" fontName="DejaVu Sans" fontSize="10.0" style="Detail">
+						<element kind="textField" uuid="1e7cc1c7-3a52-4c12-b7b2-30a5816980ee" x="0" y="0" width="69" height="30" fontName="SansSerif" fontSize="10.0" style="Detail">
 							<expression><![CDATA[new java.text.DecimalFormat(
 "'Rp' #,###"
 ).format($F{total_harga})]]></expression>
@@ -292,7 +311,7 @@ ON t.id_layanan = l.id_layanan]]></query>
 				</column>
 				<column kind="single" uuid="18413eec-d109-4ba7-ac0c-9a7898550178" width="52">
 					<columnHeader height="30" rowSpan="1" style="Table_CH">
-						<element kind="staticText" uuid="1674c446-e30d-461d-a4ff-3096a4c588dc" key="" x="0" y="0" width="52" height="30" forecolor="#000000" fontName="DejaVu Sans" fontSize="10.0" bold="true" vTextAlign="Middle" style="Column header">
+						<element kind="staticText" uuid="1674c446-e30d-461d-a4ff-3096a4c588dc" key="" x="0" y="0" width="52" height="30" forecolor="#000000" fontName="SansSerif" fontSize="10.0" bold="true" vTextAlign="Middle" style="Column header">
 							<text><![CDATA[STATUS]]></text>
 							<box leftPadding="2" style="Column header"/>
 						</element>
@@ -304,7 +323,7 @@ ON t.id_layanan = l.id_layanan]]></query>
 						<property name="com.jaspersoft.studio.layout" value="com.jaspersoft.studio.editor.layout.VerticalRowLayout"/>
 					</columnFooter>
 					<detailCell height="30" style="Table_TD">
-						<element kind="textField" uuid="ecc9ebb4-4fef-4cae-af23-f4cc0fcf12bd" x="0" y="0" width="52" height="30" fontName="DejaVu Sans" fontSize="10.0" style="Detail">
+						<element kind="textField" uuid="ecc9ebb4-4fef-4cae-af23-f4cc0fcf12bd" x="0" y="0" width="52" height="30" fontName="SansSerif" fontSize="10.0" style="Detail">
 							<expression><![CDATA[$F{status}]]></expression>
 							<box leftPadding="2" style="Detail"/>
 						</element>
@@ -313,7 +332,7 @@ ON t.id_layanan = l.id_layanan]]></query>
 				</column>
 				<column kind="single" uuid="b3564133-736f-4cb8-84bb-b6c39dc236dd" width="85">
 					<columnHeader height="30" rowSpan="1" style="Table_CH">
-						<element kind="staticText" uuid="ffc3f91f-3450-4ec1-bbfe-11d026380cf5" key="" x="0" y="0" width="85" height="30" forecolor="#000000" fontName="DejaVu Sans" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" style="Column header">
+						<element kind="staticText" uuid="ffc3f91f-3450-4ec1-bbfe-11d026380cf5" key="" x="0" y="0" width="85" height="30" forecolor="#000000" fontName="SansSerif" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" style="Column header">
 							<text><![CDATA[TGL.MASUK]]></text>
 							<box leftPadding="2" style="Column header"/>
 						</element>
@@ -328,7 +347,7 @@ ON t.id_layanan = l.id_layanan]]></query>
 						</element>
 					</columnFooter>
 					<detailCell height="30" style="Table_TD">
-						<element kind="textField" uuid="8d46f6b2-989a-4433-b78a-aa8b1860c253" x="0" y="0" width="85" height="30" fontName="DejaVu Sans" fontSize="10.0" style="Detail">
+						<element kind="textField" uuid="8d46f6b2-989a-4433-b78a-aa8b1860c253" x="0" y="0" width="85" height="30" fontName="SansSerif" fontSize="10.0" style="Detail">
 							<expression><![CDATA[$F{tanggal_masuk}]]></expression>
 							<box leftPadding="2" style="Detail"/>
 						</element>
